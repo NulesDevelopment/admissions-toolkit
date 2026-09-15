@@ -12,6 +12,7 @@ import {
   resetSpravaApplicants,
   subscribeSpravaSession,
 } from '../lib/sessionStore'
+import { clearAllPhotos } from '../lib/photos'
 import { saveOrderConfig, saveSpravaSettings } from '../lib/storage'
 import {
   COL,
@@ -98,6 +99,7 @@ export function useSprava() {
   )
 
   const reset = useCallback(() => {
+    clearAllPhotos()
     resetSpravaApplicants()
   }, [])
 

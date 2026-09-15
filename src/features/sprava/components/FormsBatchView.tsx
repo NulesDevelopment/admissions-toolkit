@@ -1,5 +1,5 @@
 import { Box, Button, Stack } from '@mui/material'
-import { useEffect, useRef } from 'react'
+import { useFormHost } from '../hooks/useFormHost'
 import { printFormsHtml } from '../lib/printForms'
 
 type Props = {
@@ -8,16 +8,7 @@ type Props = {
 }
 
 export function FormsBatchView({ html, onBack }: Props) {
-  const rootRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const root = rootRef.current
-    if (!root) return
-    root.querySelectorAll<HTMLElement>('.form-page').forEach((page) => {
-      page.contentEditable = 'true'
-      page.style.outline = 'none'
-    })
-  }, [html])
+  const rootRef = useFormHost(html)
 
   return (
     <Box className="sprava-batch-view">

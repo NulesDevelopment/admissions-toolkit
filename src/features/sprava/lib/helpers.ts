@@ -116,9 +116,3 @@ export function eduDocStr(a: Record<string, string>) {
 export function chkBox(checked: boolean) {
   return `<span class="chk${checked ? ' chk-x' : ''}"></span>`
 }
-
-export function photoBoxHTML(fnum: string) {
-  return `<div class="photo-box" data-ph="${esc(fnum)}" contenteditable="false">
-    <span class="ph-hint">фото</span>
-  </div>`
-}

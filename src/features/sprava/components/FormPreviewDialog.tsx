@@ -7,7 +7,7 @@ import {
   DialogContent,
   DialogTitle,
 } from '@mui/material'
-import { useEffect, useRef } from 'react'
+import { useFormHost } from '../hooks/useFormHost'
 import { printFormsHtml } from '../lib/printForms'
 
 type Props = {
@@ -18,24 +18,24 @@ type Props = {
 }
 
 export function FormPreviewDialog({ open, title, html, onClose }: Props) {
-  const bodyRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const root = bodyRef.current
-    if (!root) return
-    root.querySelectorAll<HTMLElement>('.form-page').forEach((page) => {
-      page.contentEditable = 'true'
-      page.style.outline = 'none'
-    })
-  }, [open, html])
+  const bodyRef = useFormHost(html, open)
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="md"
+      keepMounted
+      disableEnforceFocus
+      disableAutoFocus
+      disableRestoreFocus
+    >
       <DialogTitle>{title}</DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         <Alert severity="info" className="sprava-no-print" sx={{ m: 2, mb: 0 }}>
-          Клікни на будь-яке поле у формі, щоб відредагувати перед друком.
+          Клікни поле, щоб відредагувати текст. У рамці «фото» — завантаж
+          зображення, перетягуй і масштабуй колесом / кнопками.
         </Alert>
         <Box
           ref={bodyRef}

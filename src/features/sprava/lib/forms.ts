@@ -13,8 +13,8 @@ import {
   orderConfigToLookup,
   parseName,
   parseOrderStr,
-  photoBoxHTML,
 } from './helpers'
+import { photoBoxHTML } from './photos'
 import { COL } from '../types'
 
 export function renderForm201(
