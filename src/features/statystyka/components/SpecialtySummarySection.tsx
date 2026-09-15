@@ -1,6 +1,7 @@
-import { Button, Table, TableBody, TableCell, TableContainer, TableFooter, TableHead, TableRow, TextField } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { Box, Button, Table, TableBody, TableCell, TableContainer, TableFooter, TableHead, TableRow, TextField } from '@mui/material'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { clickSort, sortRows, type SortState } from '../lib/sort'
+import { printHtmlFragment } from '../lib/printTable'
 import type { DetailKind, SpecialtySummary } from '../lib/types'
 import { CollapsibleSection } from './CollapsibleSection'
 import { SortableHeaderCell } from './SortableHeaderCell'
@@ -80,6 +81,21 @@ export function SpecialtySummarySection({
     key: null,
     dir: 1,
   })
+  const [draftThresholds, setDraftThresholds] = useState<Record<string, number>>(
+    {},
+  )
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setDraftThresholds({})
+  }, [rows])
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
 
   const sorted = useMemo(
     () =>
@@ -91,6 +107,14 @@ export function SpecialtySummarySection({
 
   const onSort = (key: SummarySortKey) => setSort((s) => clickSort(s, key))
 
+  const scheduleThreshold = (specialty: string, value: number) => {
+    setDraftThresholds((prev) => ({ ...prev, [specialty]: value }))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      onThresholdChange(specialty, value)
+    }, 350)
+  }
+
   return (
     <CollapsibleSection
       id="stat-table"
@@ -99,12 +123,25 @@ export function SpecialtySummarySection({
       expanded={expanded}
       onExpandedChange={onExpandedChange}
       actions={
-        <Button size="small" variant="outlined" onClick={onExport}>
-          Експорт підсумку CSV
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }} className="screen-only" component="span">
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              const html = tableRef.current?.innerHTML
+              if (html) printHtmlFragment(html, 'Показники по спеціальностях')
+            }}
+          >
+            Друк таблиці
+          </Button>
+          <Button size="small" variant="outlined" onClick={onExport}>
+            Експорт підсумку CSV
+          </Button>
+        </Box>
       }
     >
       <TableContainer
+        ref={tableRef}
         className="print-table"
         sx={{
           border: '1px solid',
@@ -160,10 +197,10 @@ export function SpecialtySummarySection({
                     <TextField
                       type="number"
                       size="small"
-                      value={row.threshold}
+                      value={draftThresholds[row.specialty] ?? row.threshold}
                       slotProps={{ htmlInput: { min: 101, max: 199, step: 1 } }}
                       onChange={(e) =>
-                        onThresholdChange(row.specialty, Number(e.target.value))
+                        scheduleThreshold(row.specialty, Number(e.target.value))
                       }
                       sx={{ width: 72 }}
                       className="screen-only"

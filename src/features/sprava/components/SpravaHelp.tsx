@@ -115,8 +115,9 @@ export function SpravaHelp({ orderConfig = [] }: Props) {
             </li>
             <li>
               Щоб сформувати всі відфільтровані справи разом — натисни{' '}
-              <strong>«Згенерувати форми»</strong> внизу списку, перевір пакет і
-              натисни <strong>«Друкувати»</strong>.
+              <strong>«Згенерувати форми»</strong> (повноекранний пакет) або{' '}
+              <strong>«DOCX»</strong> для Word одного вступника. Файл Excel/CSV
+              кешується в браузері на 12 годин.
             </li>
           </Typography>
         </AccordionDetails>

@@ -29,6 +29,7 @@ type Props = {
   onReset: () => void
   onGenerate: () => void
   onPreview: (id: string) => void
+  onDocx: (id: string) => void
 }
 
 export function ApplicantsPreview({
@@ -42,6 +43,7 @@ export function ApplicantsPreview({
   onReset,
   onGenerate,
   onPreview,
+  onDocx,
 }: Props) {
   const needsSpecialty = !filters.specialty
 
@@ -156,19 +158,22 @@ export function ApplicantsPreview({
         <Table size="small">
           <TableHead>
             <TableRow>
+              <TableCell>№ справи</TableCell>
               <TableCell>ПІБ</TableCell>
               <TableCell>Факультет</TableCell>
               <TableCell>Спеціальність</TableCell>
+              <TableCell>ОКР</TableCell>
               <TableCell>Форма</TableCell>
               <TableCell>Фінансування</TableCell>
-              <TableCell align="right">Дія</TableCell>
+              <TableCell>Статус</TableCell>
+              <TableCell align="right">Дії</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {needsSpecialty ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={9}
                   align="center"
                   sx={{ py: 4, color: 'text.secondary' }}
                 >
@@ -178,7 +183,7 @@ export function ApplicantsPreview({
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={9}
                   align="center"
                   sx={{ py: 4, color: 'text.secondary' }}
                 >
@@ -188,17 +193,33 @@ export function ApplicantsPreview({
             ) : (
               rows.map((row) => (
                 <TableRow key={row.id} hover>
+                  <TableCell>{row.fileNum || '—'}</TableCell>
                   <TableCell>{row.fullName}</TableCell>
                   <TableCell>{row.faculty}</TableCell>
                   <TableCell>{row.specialty}</TableCell>
+                  <TableCell>{row.level || '—'}</TableCell>
                   <TableCell>{row.form}</TableCell>
                   <TableCell>
                     {row.funding === 'budget' ? 'Бюджет' : 'Контракт'}
                   </TableCell>
+                  <TableCell>{row.status || '—'}</TableCell>
                   <TableCell align="right">
-                    <Button size="small" onClick={() => onPreview(row.id)}>
-                      Переглянути
-                    </Button>
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{ justifyContent: 'flex-end' }}
+                    >
+                      <Button size="small" onClick={() => onPreview(row.id)}>
+                        Переглянути
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => onDocx(row.id)}
+                      >
+                        DOCX
+                      </Button>
+                    </Stack>
                   </TableCell>
                 </TableRow>
               ))
@@ -207,11 +228,7 @@ export function ApplicantsPreview({
         </Table>
       </TableContainer>
 
-      <Stack
-        direction="row"
-        spacing={1.5}
-        sx={{ justifyContent: 'flex-end' }}
-      >
+      <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end' }}>
         <Button variant="outlined" onClick={onReset}>
           Новий файл
         </Button>

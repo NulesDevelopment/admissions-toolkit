@@ -18,8 +18,10 @@ export type SpravaSession = {
   status: string | null
   statusTone: SpravaStatusTone
   loading: boolean
+  restoring: boolean
   totalRows: number
   skipped: number
+  cacheExpiresAt: number | null
 }
 
 function createInitialSession(): SpravaSession {
@@ -32,13 +34,16 @@ function createInitialSession(): SpravaSession {
     status: null,
     statusTone: 'muted',
     loading: false,
+    restoring: false,
     totalRows: 0,
     skipped: 0,
+    cacheExpiresAt: null,
   }
 }
 
 let session = createInitialSession()
 const listeners = new Set<() => void>()
+let restorePromise: Promise<void> | null = null
 
 export function getSpravaSession(): SpravaSession {
   return session
@@ -57,6 +62,7 @@ export function patchSpravaSession(patch: Partial<SpravaSession>) {
 }
 
 export function resetSpravaApplicants() {
+  restorePromise = null
   patchSpravaSession({
     applicants: [],
     fileName: null,
@@ -64,7 +70,25 @@ export function resetSpravaApplicants() {
     status: null,
     statusTone: 'muted',
     loading: false,
+    restoring: false,
     totalRows: 0,
     skipped: 0,
+    cacheExpiresAt: null,
   })
+}
+
+/** Один спільний restore — без зависання в React Strict Mode. */
+export function ensureSpravaCacheRestored(
+  restore: () => Promise<void>,
+): Promise<void> {
+  if (session.fileName) return Promise.resolve()
+  if (restorePromise) return restorePromise
+  restorePromise = (async () => {
+    try {
+      await restore()
+    } finally {
+      if (!getSpravaSession().fileName) restorePromise = null
+    }
+  })()
+  return restorePromise
 }

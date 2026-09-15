@@ -6,6 +6,8 @@ export type ParseEdeboResult = {
   applicants: ApplicantRecord[]
   totalRows: number
   skipped: number
+  /** Топ статусів у файлі (для підказки, якщо 0 «До наказу») */
+  statusSamples: { status: string; count: number }[]
 }
 
 /** @deprecated alias */
@@ -98,10 +100,21 @@ function buildApplicants(
     (a.raw[COL.status] || '').toLowerCase().includes('до наказу'),
   )
 
+  const statusMap = new Map<string, number>()
+  for (const a of all) {
+    const st = a.raw[COL.status] || '(порожньо)'
+    statusMap.set(st, (statusMap.get(st) ?? 0) + 1)
+  }
+  const statusSamples = [...statusMap.entries()]
+    .map(([status, count]) => ({ status, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
+
   return {
     applicants,
     totalRows: all.length,
     skipped: all.length - applicants.length,
+    statusSamples,
   }
 }
 

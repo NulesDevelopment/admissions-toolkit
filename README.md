@@ -15,16 +15,22 @@ npm run dev
 
 | Шлях | Опис |
 | ---- | ---- |
-| `/sprava` | Особові справи (форми Н-2.01 / Н-1.03.1) |
+| `/sprava` | Особові справи (форми Н-2.01 / Н-1.03.1, фото, DOCX) |
 | `/statystyka` | Статистика вступників |
+
+## Документація
+
+- [Інструкція користувача](docs/USER.md)
+- [Інструкція розробника](docs/DEVELOPER.md) — структура, скейлінг, як додавати фічі
 
 ## Структура
 
 - `src/layout/` — оболонка з лівим меню
 - `src/pages/` — сторінки-роути
-- `src/features/sprava/` — компоненти особових справ
-- `src/features/statystyka/` — компоненти статистики
+- `src/features/sprava/` — особові справи
+- `src/features/statystyka/` — статистика
 - `reference/` — оригінальні HTML-прототипи
+- `docs/` — інструкції
 
 ## Скрипти
 
@@ -34,3 +40,4 @@ npm run dev
 | `npm run build` | production-збірка |
 | `npm run preview` | перегляд збірки |
 | `npm run lint` | oxlint |
+| `npm test` | vitest |

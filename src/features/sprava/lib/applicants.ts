@@ -27,11 +27,36 @@ export function uniqueSorted(values: string[]): string[] {
   )
 }
 
+/** Опції фільтрів з каскадом: факультет → спеціальність → форма. */
+export function cascadeOptions(
+  applicants: ApplicantRecord[],
+  filters: ApplicantFilters,
+) {
+  const byFaculty = filters.faculty
+    ? applicants.filter((a) => g(a.raw, COL.faculty) === filters.faculty)
+    : applicants
+
+  const specialtyOptions = uniqueSorted(
+    byFaculty.map((a) => g(a.raw, COL.specialty)),
+  )
+
+  const bySpec =
+    filters.specialty
+      ? byFaculty.filter((a) => g(a.raw, COL.specialty) === filters.specialty)
+      : byFaculty
+
+  const formOptions = uniqueSorted(bySpec.map((a) => g(a.raw, COL.studyForm)))
+  const facultyOptions = uniqueSorted(
+    applicants.map((a) => g(a.raw, COL.faculty)),
+  )
+
+  return { facultyOptions, specialtyOptions, formOptions }
+}
+
 export function filterApplicants(
   applicants: ApplicantRecord[],
   filters: ApplicantFilters,
 ): ApplicantRecord[] {
-  // Без спеціальності список порожній — як у HTML-прототипі
   if (!filters.specialty) return []
 
   const q = filters.search.trim().toLowerCase()

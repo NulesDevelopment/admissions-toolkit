@@ -1,5 +1,6 @@
 import { Alert, Box, CircularProgress, Typography } from '@mui/material'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ApplicantsPreview } from '../features/sprava/components/ApplicantsPreview'
 import { FileUploadZone } from '../features/sprava/components/FileUploadZone'
 import { FormPreviewDialog } from '../features/sprava/components/FormPreviewDialog'
@@ -20,12 +21,6 @@ export function SpravaPage() {
   const [previewTitle, setPreviewTitle] = useState('Попередній перегляд')
   const [previewHtml, setPreviewHtml] = useState('')
   const [batchHtml, setBatchHtml] = useState<string | null>(null)
-
-  if (batchHtml) {
-    return (
-      <FormsBatchView html={batchHtml} onBack={() => setBatchHtml(null)} />
-    )
-  }
 
   return (
     <Box className="sprava-page">
@@ -58,7 +53,9 @@ export function SpravaPage() {
       {s.loading && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
           <CircularProgress size={22} />
-          <Typography color="text.secondary">Обробка Excel…</Typography>
+          <Typography color="text.secondary">
+            {s.restoring ? 'Відновлення з кешу…' : 'Обробка файлу…'}
+          </Typography>
         </Box>
       )}
 
@@ -102,6 +99,9 @@ export function SpravaPage() {
             setPreviewHtml(s.buildFormsHtml([id]))
             setPreviewOpen(true)
           }}
+          onDocx={(id) => {
+            void s.downloadDocx(id)
+          }}
         />
       )}
 
@@ -122,6 +122,26 @@ export function SpravaPage() {
         html={previewHtml}
         onClose={() => setPreviewOpen(false)}
       />
+
+      {batchHtml &&
+        createPortal(
+          <Box
+            className="sprava-batch-portal"
+            sx={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: (t) => t.zIndex.modal + 2,
+              bgcolor: '#f4f5f7',
+              overflow: 'auto',
+            }}
+          >
+            <FormsBatchView
+              html={batchHtml}
+              onBack={() => setBatchHtml(null)}
+            />
+          </Box>,
+          document.body,
+        )}
     </Box>
   )
 }

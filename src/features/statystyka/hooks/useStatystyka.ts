@@ -343,12 +343,30 @@ export function useStatystyka() {
     )
   }, [])
 
+  const setEncoding = useCallback(
+    (encoding: EncodingOption) => {
+      patch({ encoding })
+      const ready = getStatystykaSession().ready
+      if (!ready) return
+      void (async () => {
+        const cached = await loadCachedFile()
+        if (!cached) return
+        await loadFile(cached.file, {
+          encoding,
+          persist: true,
+          faculty: getStatystykaSession().faculty || cached.meta.faculty,
+        })
+      })()
+    },
+    [loadFile, patch],
+  )
+
   const hasData = session.ready && Boolean(session.faculty)
 
   return useMemo(
     () => ({
       encoding: session.encoding,
-      setEncoding: (encoding: EncodingOption) => patch({ encoding }),
+      setEncoding,
       printMode: session.printMode,
       setPrintMode: (printMode: 'mono' | 'color') => patch({ printMode }),
       fileName: session.fileName,
@@ -392,6 +410,7 @@ export function useStatystyka() {
       openDetail,
       openPriorityDetail,
       clearSavedData,
+      setEncoding,
     ],
   )
 }
