@@ -1,0 +1,1772 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Особові справи вступників — НУБіП</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#2a7a3a;--green-d:#1f5c2b;--green-l:#e6f4ea;
+  --gray:#f4f5f7;--border:#dde1e7;--text:#222;--sub:#555;
+  --radius:10px;--shadow:0 2px 12px rgba(0,0,0,.09)
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     background:var(--gray);color:var(--text);min-height:100vh}
+
+/* ===== LAYOUT ===== */
+#app{width:100%;padding:24px 32px 80px}
+.page-title{font-size:26px;font-weight:700;color:var(--green);margin-bottom:4px}
+.page-sub{color:var(--sub);margin-bottom:24px;font-size:15px}
+
+/* ===== CARDS ===== */
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);
+      padding:22px 24px;margin-bottom:18px}
+.card-title{font-size:14px;font-weight:700;color:var(--sub);
+            text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+
+/* ===== SETTINGS GRID ===== */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.sf{display:flex;flex-direction:column;gap:5px}
+.sf label{font-size:12px;color:var(--sub);font-weight:600;letter-spacing:.3px}
+.sf input{border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;
+          font-size:14px;outline:none;transition:border-color .18s;color:var(--text)}
+.sf input:focus{border-color:var(--green)}
+.sf-full{grid-column:1/-1}
+
+/* ===== UPLOAD ===== */
+.upload-zone{border:2.5px dashed var(--border);border-radius:var(--radius);
+             background:#fff;padding:44px 20px;text-align:center;
+             cursor:pointer;transition:border-color .2s,background .2s;
+             margin-bottom:18px}
+.upload-zone.drag-over{border-color:var(--green);background:var(--green-l)}
+.upload-icon{font-size:52px;margin-bottom:12px}
+.upload-zone p{color:var(--sub);margin-bottom:16px;font-size:15px}
+
+/* ===== BUTTONS ===== */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;
+     border-radius:8px;border:none;cursor:pointer;font-size:14px;
+     font-weight:600;transition:filter .18s;font-family:inherit}
+.btn:hover{filter:brightness(.92)}
+.btn-primary{background:var(--green);color:#fff}
+.btn-secondary{background:#ebebeb;color:#333}
+.btn-lg{padding:13px 30px;font-size:15px;border-radius:10px}
+.btn-danger{background:#e53935;color:#fff}
+
+/* ===== PREVIEW TABLE ===== */
+.preview-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.preview-header h2{font-size:16px;font-weight:700}
+.badge{background:var(--green-l);color:var(--green);border-radius:20px;
+       padding:3px 12px;font-size:13px;font-weight:700}
+.tbl-wrap{overflow-x:auto;margin-bottom:16px;
+          border:1px solid var(--border);border-radius:8px}
+table.ptbl{width:100%;border-collapse:collapse;font-size:13px}
+table.ptbl thead th{background:#f8f9fb;padding:9px 11px;text-align:left;
+              font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap}
+table.ptbl td{padding:7px 11px;border-bottom:1px solid #f1f1f1;white-space:nowrap}
+table.ptbl tbody tr:hover{background:#f5faf6}
+table.ptbl tr:last-child td{border-bottom:none}
+.btn-preview{padding:4px 12px;font-size:12px;border-radius:6px;
+             background:var(--green-l);color:var(--green);border:none;
+             cursor:pointer;font-weight:600;font-family:inherit;transition:filter .15s}
+.btn-preview:hover{filter:brightness(.9)}
+.filter-bar{display:flex;gap:16px;align-items:flex-end;
+            background:#f8f9fb;border-radius:8px;padding:14px;margin-bottom:14px}
+.filter-bar .sf{flex:1;min-width:0}
+.filter-bar select{width:100%;border:1.5px solid var(--border);border-radius:7px;
+                   padding:9px 10px;font-size:14px;outline:none;background:#fff;
+                   color:var(--text);transition:border-color .18s;
+                   font-family:inherit;cursor:pointer;min-width:0}
+.filter-bar select:focus{border-color:var(--green)}
+.gen-bar{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+/* ===== MODAL ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);
+               z-index:10000;display:flex;align-items:flex-start;
+               justify-content:center;overflow-y:auto;padding:24px 16px}
+.modal-overlay.hidden{display:none}
+.modal-box{background:#fff;border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.25);
+           width:900px;max-width:100%;position:relative;overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;
+              padding:16px 24px;border-bottom:1px solid var(--border);background:#f8f9fb}
+.modal-header h3{font-size:16px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;
+             color:#666;line-height:1;padding:2px 6px;border-radius:6px}
+.modal-close:hover{background:#eee}
+.modal-body{padding:24px;overflow-y:auto;max-height:80vh;background:#e8e8e8}
+.modal-body .form-page{margin:10px auto;transform-origin:top center}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);
+              display:flex;justify-content:flex-end;gap:10px;background:#f8f9fb}
+
+/* ===== FLOAT TOOLBAR ===== */
+#toolbar{position:fixed;top:16px;right:16px;z-index:9999;
+         display:flex;gap:8px;display:none}
+
+/* ===== PRINT AREA ===== */
+#printArea{display:none}
+
+/* ===== FORM STYLES ===== */
+.form-page{
+  width:210mm;height:297mm;
+  margin:10mm auto;padding:10mm 14mm;
+  background:#fff;
+  font-family:'Times New Roman',Times,serif;
+  font-size:14pt;line-height:1.4;
+  box-shadow:0 0 8px rgba(0,0,0,.15);
+  page-break-after:always;
+  position:relative;
+  display:flex;flex-direction:column;
+  box-sizing:border-box;overflow:visible
+}
+.fp-bold{font-weight:bold}
+.fp-ul{text-decoration:underline}
+.fp-center{text-align:center}
+.fp-small{font-size:8.5pt}
+.fp-section{font-size:20pt;font-weight:bold;text-align:center;
+            text-transform:uppercase;margin:0;letter-spacing:.5px}
+.fp-mark{background:#ffff80}
+
+/* Form tables */
+.ft{width:100%;border-collapse:collapse}
+.ft td,.ft th{padding:2px 5px;vertical-align:middle}
+.ft-border td,.ft-border th{border:1px solid #000}
+.ft-box{border:1px solid #000;padding:5px 8px}
+
+/* ===== PHOTO BOX (вставка та редагування фото) ===== */
+.photo-box{
+  position:relative;border:1px solid #000;width:90px;height:110px;
+  overflow:hidden;background:#fff;cursor:pointer;user-select:none;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0
+}
+.photo-box .ph-hint{font-size:9pt;color:#999;pointer-events:none;text-align:center;line-height:1.3}
+.photo-box img{
+  position:absolute;top:50%;left:50%;max-width:none;max-height:none;
+  transform-origin:center center;pointer-events:none;display:block
+}
+.photo-box.has-img{cursor:move}
+.photo-box.has-img .ph-hint{display:none}
+/* панель керування — тільки на екрані, ховається у друку */
+.ph-ctrl{
+  position:absolute;left:0;right:0;bottom:0;
+  display:none;gap:1px;background:rgba(0,0,0,.55);
+  padding:2px;justify-content:center;z-index:5
+}
+.photo-box:hover .ph-ctrl{display:flex}
+.ph-ctrl button{
+  border:none;background:rgba(255,255,255,.92);color:#111;cursor:pointer;
+  width:15px;height:15px;padding:0;border-radius:2px;
+  font:700 11px/15px system-ui,-apple-system,sans-serif;
+  display:flex;align-items:center;justify-content:center
+}
+.ph-ctrl button:hover{background:#fff}
+@media print{
+  .ph-ctrl{display:none!important}
+  .photo-box{cursor:default}
+  .photo-box .ph-hint{color:#bbb}
+}
+
+/* Checkboxes in text */
+.chk{display:inline-block;width:14px;height:14px;border:1px solid #000;
+     text-align:center;line-height:13px;font-size:10pt;vertical-align:middle;
+     margin:0 2px}
+.chk-x::before{content:'х'}
+
+
+/* ===== ACCORDION ===== */
+.acc-head{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;background:#fff;border:none;cursor:pointer;
+  font-size:15px;font-weight:600;color:var(--text);
+  font-family:inherit;transition:background .15s
+}
+.acc-head:hover{background:var(--green-l)}
+.acc-arrow{font-size:18px;color:var(--green);transition:transform .2s;display:inline-block}
+.acc-head[aria-expanded="true"] .acc-arrow{transform:rotate(180deg)}
+.acc-body{padding:16px 18px 20px;background:#fdfdfd}
+
+@page{size:A4;margin:0}
+@media print{
+  #app,#toolbar{display:none!important}
+  #printArea{display:block!important}
+  body{background:#fff}
+  .form-page{margin:0;box-shadow:none;page-break-after:always}
+  .form-page:last-child{page-break-after:avoid}
+}
+@media screen{
+  #printArea.shown{display:block;background:var(--gray);padding:20px 0}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-ring{width:40px;height:40px;border:4px solid #e0e0e0;border-top-color:#1976d2;border-radius:50%;animation:spin .8s linear infinite}
+</style>
+</head>
+<body>
+
+<!-- ========== APP UI ========== -->
+<div id="app">
+  <div style="padding:24px 32px 80px">
+    <div class="page-title">📋 Особові справи вступників</div>
+    <p class="page-sub">Генератор форм Н-2.01 та Н-1.03.1 · НУБіП України</p>
+
+    <!-- Help accordion -->
+    <div id="helpAccordion" style="margin-bottom:18px;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);background:#fff">
+
+      <!-- Panel 1: Як користуватись -->
+      <div class="acc-panel">
+        <button class="acc-head" onclick="toggleAcc(this)">
+          <span>📖 Як користуватись</span><span class="acc-arrow">▾</span>
+        </button>
+        <div class="acc-body" style="display:none">
+          <ol style="margin:0;padding-left:20px;line-height:1.9;font-size:14px">
+            <li>Вивантаж Excel-файл із ЄДЕБО (експорт заявок вступника).</li>
+            <li>Заповни поля <strong>Налаштування</strong> нижче — особливо Термін навчання та Відповідального секретаря.</li>
+            <li>Якщо зʼявились нові накази з новою датою — натисни <strong>«⚙️ Дати наказів…»</strong> і додай новий рядок із датою та номерами через кому. Дата підставляється автоматично для кожного вступника за номером його наказу.</li>
+            <li>Перетягни або вибери Excel-файл у зону завантаження. Програма автоматично залишить лише вступників зі статусом <strong>«До наказу»</strong>.</li>
+            <li>Використовуй фільтри (факультет, спеціальність, форма навчання, фінансування) щоб звузити список.</li>
+            <li>Натисни <strong>«👁 Переглянути»</strong> навпроти вступника — відкриється вікно з формами Н-2.01 і Н-1.03.1. Текст у формах можна редагувати прямо у вікні перед друком.</li>
+            <li>Щоб роздрукувати / зберегти в PDF — натисни <strong>«🖨 Друк»</strong> у вікні перегляду. Форма займає рівно 2 сторінки A4, без зайвих полів та дати у заголовку.</li>
+            <li>Щоб сформувати всі відфільтровані справи разом — натисни <strong>«Сформувати всі»</strong> внизу списку, а потім <strong>«🖨 Друк»</strong>.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Panel 2: Конфіг наказів -->
+      <div class="acc-panel" style="border-top:1px solid var(--border)">
+        <button class="acc-head" onclick="toggleAcc(this)">
+          <span>📋 Конфіг наказів і дати</span><span class="acc-arrow">▾</span>
+        </button>
+        <div class="acc-body" style="display:none">
+          <p style="font-size:14px;line-height:1.8;margin-bottom:10px">
+            Кнопка <strong>«⚙️ Дати наказів…»</strong> у Налаштуваннях відкриває таблицю відповідності: дата → номери наказів. Дата наказу у формі Н-2.01 підставляється <em>автоматично</em> — програма шукає номер наказу вступника в цій таблиці.
+          </p>
+          <table style="font-size:13px;border-collapse:collapse;width:100%;margin-bottom:12px">
+            <thead>
+              <tr style="background:#f8f9fb">
+                <th style="padding:8px 12px;text-align:left;border:1px solid var(--border)">Дія</th>
+                <th style="padding:8px 12px;text-align:left;border:1px solid var(--border)">Як зробити</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Додати нову дату (новий пакет наказів)</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Натисни <strong>«＋ Додати дату»</strong>, введи дату у форматі <em>ДД.ММ.РРРР</em> і номери наказів через кому</td>
+              </tr>
+              <tr style="background:#fafafa">
+                <td style="padding:7px 12px;border:1px solid var(--border)">Дописати номери до існуючої дати</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Відкрий конфіг, знайди потрібний рядок і допиши номери через кому в кінці поля</td>
+              </tr>
+              <tr>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Видалити застарілу дату</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Натисни 🗑 праворуч від рядка</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="background:#e8f5e9;border-left:4px solid #43a047;border-radius:6px;padding:10px 14px;font-size:13px;line-height:1.7">
+            <strong>💡 Поточний конфіг (зберігається лише в цій вкладці браузера):</strong><br>
+            13.08.2026 — накази 1255–1274 &nbsp;|&nbsp; 14.08.2026 — 1309 &nbsp;|&nbsp; 18.08.2026 — 1358–1369 &nbsp;|&nbsp; 20.08.2026 — 1437–1440<br>
+            Якщо завантажити новий Excel, конфіг не скидається — достатньо додати нові рядки.
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Бюджет vs контракт -->
+      <div class="acc-panel" style="border-top:1px solid var(--border)">
+        <button class="acc-head" onclick="toggleAcc(this)">
+          <span>💰 Як визначається бюджет / контракт</span><span class="acc-arrow">▾</span>
+        </button>
+        <div class="acc-body" style="display:none">
+          <p style="font-size:14px;line-height:1.8;margin-bottom:10px">
+            Програма читає колонку <strong>«Наказ про зарахування»</strong> і шукає в ній число <strong>1255</strong>.
+          </p>
+          <table style="font-size:13px;border-collapse:collapse;width:100%">
+            <thead>
+              <tr style="background:#f8f9fb">
+                <th style="padding:8px 12px;text-align:left;border:1px solid var(--border)">Що в колонці «Наказ»</th>
+                <th style="padding:8px 12px;text-align:left;border:1px solid var(--border)">Фінансування</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Містить «1255» (напр. <em>«1255 СК від 13.08.2026»</em>)</td>
+                <td style="padding:7px 12px;border:1px solid var(--border);color:#1e6b30;font-weight:600">✅ Бюджет</td>
+              </tr>
+              <tr style="background:#fafafa">
+                <td style="padding:7px 12px;border:1px solid var(--border)">Будь-який інший номер наказу</td>
+                <td style="padding:7px 12px;border:1px solid var(--border);color:#b71c1c;font-weight:600">💳 Контракт</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="font-size:13px;color:#666;margin-top:8px">
+            Номер наказу програма витягує автоматично — шукає цифри перед «СК». Дата береться з конфігу наказів (кнопка ⚙️), а не з тексту колонки.
+          </p>
+        </div>
+      </div>
+
+      <!-- Panel 4: Що треба вводити вручну -->
+      <div class="acc-panel" style="border-top:1px solid var(--border)">
+        <button class="acc-head" onclick="toggleAcc(this)">
+          <span>✏️ Чого немає в ЄДЕБО — вводити вручну</span><span class="acc-arrow">▾</span>
+        </button>
+        <div class="acc-body" style="display:none">
+          <table style="font-size:13px;border-collapse:collapse;width:100%">
+            <thead>
+              <tr style="background:#f8f9fb">
+                <th style="padding:8px 12px;text-align:left;border:1px solid var(--border)">Поле у формі</th>
+                <th style="padding:8px 12px;text-align:left;border:1px solid var(--border)">Де вводити</th>
+                <th style="padding:8px 12px;text-align:left;border:1px solid var(--border)">Примітка</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Термін навчання</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Налаштування → <em>Термін навчання</em></td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">напр.: <strong>3 р. 10 міс</strong></td>
+              </tr>
+              <tr style="background:#fafafa">
+                <td style="padding:7px 12px;border:1px solid var(--border)">Рік вступу</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Налаштування → <em>Рік вступу</em></td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">за замовчуванням <strong>2026</strong></td>
+              </tr>
+              <tr>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Дати наказів</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Налаштування → <em>⚙️ Дати наказів…</em></td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">додавай нові рядки коли зʼявляться накази з новою датою</td>
+              </tr>
+              <tr style="background:#fafafa">
+                <td style="padding:7px 12px;border:1px solid var(--border)">Відповідальний секретар</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Налаштування → <em>Відповідальний секретар</em></td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">за замовчуванням <strong>Євгеній НІКІТЕНКО</strong></td>
+              </tr>
+              <tr>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Фото вступника</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">у вікні перегляду — клік по рамці фото</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">перетягуванням зсувати, колесом миші або <strong>+ / −</strong> масштабувати</td>
+              </tr>
+              <tr style="background:#fafafa">
+                <td style="padding:7px 12px;border:1px solid var(--border)">Паспорт, виданий до <strong>01.08.2022</strong></td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">у вікні перегляду (поле редагується)</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">серія, номер, дата й орган лишаються порожніми — вписати вручну</td>
+              </tr>
+              <tr>
+                <td style="padding:7px 12px;border:1px solid var(--border)">Таблиця документів (Н-1.03.1)</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">після друку — від руки</td>
+                <td style="padding:7px 12px;border:1px solid var(--border)">кількість аркушів, дата і місце вилучення, дата повернення</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top:14px;background:#fff8e1;border-left:4px solid #f9a825;border-radius:6px;padding:12px 14px;font-size:13px;line-height:1.7">
+            <strong>⚠️ Після друку заповнити від руки:</strong><br>
+            Підпис відповідального секретаря — <strong>ставиться від руки</strong> на роздрукованому бланку.<br>
+            Якщо паспорт виданий <strong>до 01.08.2022</strong> — рядок <em>«Виданий»</em> порожній: вписати серію, номер, дату та орган з самого документа вступника.<br>
+            У таблиці документів — заповнити колонки <em>«Кількість аркушів»</em>, <em>«Дата вилучення і місце знаходження документа»</em> та <em>«Дата повернення документа в особову справу»</em> після фізичного прийому документів.
+          </div>
+
+          <p style="font-size:13px;color:#666;margin-top:10px">
+            Всі інші поля (ПІБ, факультет, спеціальність, документ про освіту, посвідчення особи, пільги, тип конкурсу тощо) заповнюються <strong>автоматично</strong> з ЄДЕБО-файлу.
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /helpAccordion -->
+
+    <!-- Settings -->
+    <div class="card">
+      <div class="card-title">⚙️ Налаштування</div>
+      <div class="sg">
+        <div class="sf">
+          <label>ТЕРМІН НАВЧАННЯ</label>
+          <input id="s_duration" placeholder="напр.: 3 р. 10 міс" value="3 р. 10 міс">
+        </div>
+        <div class="sf">
+          <label>РІК ВСТУПУ</label>
+          <input id="s_year" value="2026">
+        </div>
+        <div class="sf">
+          <label>КОНФІГ НАКАЗІВ</label>
+          <button onclick="openOrderCfg()" style="width:100%;padding:9px 12px;border:1.5px solid #ccc;border-radius:7px;background:#f5f5f5;cursor:pointer;font-size:14px;text-align:left">⚙️ Дати наказів…</button>
+        </div>
+        <div class="sf">
+          <label>ВІДПОВІДАЛЬНИЙ СЕКРЕТАР (Прізвище ІМ'Я)</label>
+          <input id="s_secretary" placeholder="напр.: Руслан ЛАВРИК" value="Євгеній НІКІТЕНКО">
+        </div>
+        <div class="sf sf-full">
+          <label>НАЗВА УНІВЕРСИТЕТУ</label>
+          <input id="s_university" value="Національний університет біоресурсів і природокористування України">
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="upload-zone" id="uploadZone">
+      <div class="upload-icon" id="uploadIcon">📊</div>
+      <p id="uploadText">Перетягни сюди Excel-файл з ЄДЕБО (.xlsx / .xls)</p>
+      <button class="btn btn-primary" id="uploadBtn" onclick="event.stopPropagation();document.getElementById('fi').click()">
+        Вибрати файл
+      </button>
+      <input type="file" id="fi" accept=".xlsx,.xls" hidden>
+    </div>
+
+    <!-- Status note -->
+    <div id="statusNote" style="display:none;background:#e6f4ea;color:#1e6b30;
+         border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:14px"></div>
+
+    <!-- Preview -->
+    <div class="card" id="previewCard" style="display:none">
+      <div class="preview-header">
+        <h2>Вступники</h2>
+        <span class="badge" id="cntBadge">0</span>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar" id="filterBar">
+        <div class="sf">
+          <label>ПОШУК (ПРІЗВИЩЕ ІМ'Я)</label>
+          <input type="text" id="fltSearch" placeholder="напр.: Козак Дмитро" oninput="applyFilter()">
+        </div>
+        <div class="sf">
+          <label>ФАКУЛЬТЕТ / ПІДРОЗДІЛ</label>
+          <select id="fltFaculty" onchange="applyFilter()">
+            <option value="">— Всі —</option>
+          </select>
+        </div>
+        <div class="sf">
+          <label>СПЕЦІАЛЬНІСТЬ *</label>
+          <select id="fltSpec" onchange="applyFilter()">
+            <option value="">— Оберіть спеціальність —</option>
+          </select>
+        </div>
+        <div class="sf">
+          <label>ФОРМА НАВЧАННЯ</label>
+          <select id="fltForm" onchange="applyFilter()">
+            <option value="">— Всі —</option>
+          </select>
+        </div>
+        <div class="sf">
+          <label>ФІНАНСУВАННЯ</label>
+          <select id="fltFunding" onchange="applyFilter()">
+            <option value="">— Всі —</option>
+            <option value="budget">💚 Бюджет</option>
+            <option value="contract">🔵 Контракт</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="tbl-wrap">
+        <table class="ptbl" id="ptbl"></table>
+      </div>
+      <div class="gen-bar">
+        <button class="btn btn-secondary" onclick="resetApp()">↩ Новий файл</button>
+        <button class="btn btn-primary btn-lg" onclick="generateForms()">
+          🖨️ Згенерувати форми (<span id="genCount">0</span>)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal preview -->
+<!-- ── Конфіг наказів modal ─────────────────────────────────── -->
+<div class="modal-overlay hidden" id="orderCfgOverlay" onclick="if(event.target===this)closeOrderCfg()">
+  <div class="modal-box" style="max-width:680px;max-height:80vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3>⚙️ Конфіг дат наказів</h3>
+      <button class="modal-close" onclick="closeOrderCfg()">✕</button>
+    </div>
+    <div style="padding:16px;overflow-y:auto;flex:1">
+      <p style="font-size:13px;color:#555;margin-bottom:12px">
+        Кожен рядок — одна дата і список номерів наказів через кому (або пробіл).
+        При генерації форми номер наказу шукається тут і автоматично береться відповідна дата.
+      </p>
+      <table style="width:100%;border-collapse:collapse" id="orderCfgTable">
+        <thead>
+          <tr style="background:#f0f0f0;font-size:12px;font-weight:600">
+            <th style="padding:6px 8px;text-align:left;width:130px;border:1px solid #ddd">Дата наказу</th>
+            <th style="padding:6px 8px;text-align:left;border:1px solid #ddd">Номери наказів (через кому)</th>
+            <th style="padding:6px 8px;width:36px;border:1px solid #ddd"></th>
+          </tr>
+        </thead>
+        <tbody id="orderCfgBody"></tbody>
+      </table>
+      <button onclick="addOrderCfgRow()" style="margin-top:10px;padding:6px 14px;background:#4caf50;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">＋ Додати дату</button>
+    </div>
+    <div style="padding:12px 16px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeOrderCfg()" style="padding:7px 18px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;cursor:pointer">Скасувати</button>
+      <button onclick="saveOrderCfg()" style="padding:7px 18px;border:none;border-radius:6px;background:#1976d2;color:#fff;cursor:pointer;font-weight:600">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <h3 id="modalTitle">Попередній перегляд</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div style="padding:8px 24px;background:#fffde7;font-size:12px;color:#795548;border-top:1px solid #f0e68c">
+      ✏️ Клікни на будь-яке поле у формі щоб відредагувати перед друком
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Закрити</button>
+      <button class="btn btn-primary" onclick="printModal()">🖨️ Роздрукувати цю заяву</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating toolbar (shown during preview) -->
+<div id="toolbar">
+  <button class="btn btn-secondary" onclick="goBack()">← Назад</button>
+  <button class="btn btn-primary" onclick="window.print()">🖨️ Друк / Зберегти PDF</button>
+</div>
+
+<!-- Print area -->
+<div id="printArea"></div>
+
+<script>
+
+// ====================================================
+// ACCORDION
+// ====================================================
+function toggleAcc(btn) {
+  const body = btn.nextElementSibling;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  btn.setAttribute('aria-expanded', String(!open));
+}
+
+// ====================================================
+// COLUMN NAMES (ЄДЕБО export)
+// ====================================================
+const C = {
+  pib:         'Вступник',
+  program:     'Назва КП',
+  level:       'ОКР',
+  specialty:   'Спеціальність',
+  studyForm:   'Форма навчання',
+  faculty:     'Структурний підрозділ',
+  fileNum:     'Номер (шифр) особової справи',
+  order:       'Наказ про зарахування',
+  docType:     'Тип документа',
+  docSeries:   'Серія документа',
+  docNum:      'Номер документа',
+  docDate:     'Дата видачі документа',
+  docIssuer:   'Ким видано',
+  gender:      'Стать',
+  benefits:    'Пільгові категорії',
+  isBudget:    'Претендує на бюджет',
+  isContract:  'Претендує на контракт',
+  compBudget:  'Бере участь в конкурсі на місця державного та регіонального замовлення',
+  compContr:   'Бере участь в конкурсі на місця за кошти фізичних та юридичних осіб',
+  interview:   'Чи рекомендовано за співбесідою',
+  compType:    'Тип конкурсу, за яким отримано рекомендацію',
+  dpo:         'ДПО',
+  dpoSeries:   'ДПО.Серія',
+  dpoNum:      'ДПО.Номер',
+  dpoDate:     'ДПО.Дата видачі',
+  dpoIssuer:   'ДПО.Ким видано',
+  taxId:       'РНОКПП',
+  honors:      'Відзнака',
+  status:      'Статус заявки',
+};
+
+// ====================================================
+// STATE
+// ====================================================
+let applicants = [];
+let filtered   = [];
+
+// ====================================================
+// FILE UPLOAD
+// ====================================================
+const zone = document.getElementById('uploadZone');
+const fi   = document.getElementById('fi');
+
+zone.addEventListener('click', () => fi.click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+fi.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+function setProgress(pct, label) {
+  const icon = document.getElementById('uploadIcon');
+  const text = document.getElementById('uploadText');
+  const btn  = document.getElementById('uploadBtn');
+  if (pct >= 100) {
+    // Відновити нормальний стан
+    icon.innerHTML = '📊';
+    icon.style.fontSize = '';
+    text.style.display = '';
+    btn.style.display  = '';
+  } else {
+    // Показати спінер замість іконки
+    icon.innerHTML = '<div class="loader-ring" style="margin:0 auto"></div>';
+    icon.style.fontSize = '0';
+    text.style.display = 'none';
+    btn.style.display  = 'none';
+    if (label) {
+      // Текст під спінером
+      const existing = document.getElementById('loaderLabel');
+      if (existing) { existing.textContent = label; }
+      else {
+        const el = document.createElement('p');
+        el.id = 'loaderLabel';
+        el.style.cssText = 'margin:8px 0 0;font-size:14px;color:#555';
+        el.textContent = label;
+        icon.parentNode.insertBefore(el, icon.nextSibling);
+      }
+    }
+  }
+  // Прибрати loaderLabel коли готово
+  if (pct >= 100) {
+    const el = document.getElementById('loaderLabel');
+    if (el) el.remove();
+  }
+}
+
+function loadFile(file) {
+  // Перевірка розширення — лише Excel
+  if (!/\.(xlsx|xls)$/i.test(file.name)) {
+    alert('Підтримуються лише файли Excel (.xlsx, .xls).\nCSV не приймається.');
+    return;
+  }
+
+  setProgress(5, 'Читання файлу…');
+  document.getElementById('statusNote').style.display = 'none';
+
+  const reader = new FileReader();
+
+  reader.onprogress = ev => {
+    if (ev.lengthComputable) {
+      const pct = Math.round((ev.loaded / ev.total) * 40); // 0→40%
+      setProgress(5 + pct, 'Читання файлу…');
+    }
+  };
+
+  reader.onload = ev => {
+    setProgress(50, 'Розпарсування Excel…');
+    // Невелика затримка щоб браузер встиг відмалювати прогрес-бар
+    setTimeout(() => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array', codepage: 1251, raw: false });
+        setProgress(70, 'Формування таблиці…');
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        if (rows.length < 2) { setProgress(100); alert('Файл порожній або пошкоджений'); return; }
+
+        setProgress(85, 'Фільтрація вступників…');
+        const headers = rows[0].map(h => String(h).trim());
+        const all = rows.slice(1)
+          .filter(r => r.some(c => c !== ''))
+          .map(r => {
+            const o = {};
+            headers.forEach((h, i) => { o[h] = String(r[i] ?? '').trim(); });
+            return o;
+          })
+          .filter(a => a[C.pib]);
+
+        // Автофільтр: лише статус "До наказу"
+        applicants = all.filter(a =>
+          (a[C.status]||'').toLowerCase().includes('до наказу')
+        );
+
+        const skipped = all.length - applicants.length;
+        const note = document.getElementById('statusNote');
+        note.textContent = `✅ Завантажено: ${applicants.length} вступників зі статусом "До наказу"` +
+          (skipped > 0 ? ` (пропущено ${skipped} із ${all.length})` : '') + '.';
+        note.style.display = 'block';
+
+        setProgress(95, 'Відображення…');
+        setTimeout(() => {
+          setProgress(100);
+          renderPreview();
+          // Скрол до таблиці
+          setTimeout(() => {
+            const card = document.getElementById('previewCard');
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 80);
+        }, 80);
+      } catch (err) {
+        setProgress(100);
+        alert('Помилка читання файлу:\n' + err.message);
+      }
+    }, 30);
+  };
+
+  reader.onerror = () => { setProgress(100); alert('Не вдалося прочитати файл.'); };
+  reader.readAsArrayBuffer(file);
+}
+
+// ====================================================
+// PREVIEW & FILTER
+// ====================================================
+function unique(arr) { return [...new Set(arr.filter(Boolean))].sort(); }
+
+function populateFilters() {
+  const faculties  = unique(applicants.map(a => g(a, C.faculty)));
+  const specs      = unique(applicants.map(a => g(a, C.specialty)));
+  const forms      = unique(applicants.map(a => g(a, C.studyForm)));
+
+  const fill = (id, vals, placeholder) => {
+    const sel = document.getElementById(id);
+    const keep = sel.value;
+    sel.innerHTML = `<option value="">${placeholder || '— Всі —'}</option>` +
+      vals.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    if (vals.includes(keep)) sel.value = keep;   // зберегти обраний фільтр після перезаливки списку
+  };
+  fill('fltFaculty', faculties);
+  fill('fltSpec',    specs, '— Оберіть спеціальність —');
+  fill('fltForm',    forms);
+}
+
+function applyFilter() {
+  const fac     = document.getElementById('fltFaculty').value;
+  const spec    = document.getElementById('fltSpec').value;
+  const form    = document.getElementById('fltForm').value;
+  const funding = document.getElementById('fltFunding').value;
+  const search  = document.getElementById('fltSearch').value.trim().toLowerCase();
+  const budgetNum = BUDGET_ORDER;
+
+  // Без обраної спеціальності список не будуємо — щоб не грузити всіх одразу
+  if (!spec) {
+    filtered = [];
+    renderTable(true);
+    return;
+  }
+
+  filtered = applicants.filter(a => {
+    if (fac  && g(a, C.faculty)   !== fac)  return false;
+    if (spec && g(a, C.specialty) !== spec) return false;
+    if (form && g(a, C.studyForm) !== form) return false;
+    if (funding) {
+      const isBudget = g(a, C.order).replace(/\D/g,'').includes(budgetNum);
+      if (funding === 'budget'   && !isBudget) return false;
+      if (funding === 'contract' &&  isBudget) return false;
+    }
+    if (search && !g(a, C.pib).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  renderTable();
+}
+
+function renderTable(needSpec) {
+  const cols = [C.fileNum, C.pib, C.specialty, C.studyForm, C.level, C.faculty, C.status];
+  const thead = '<thead><tr><th>👁</th>' + cols.map(c => `<th>${c}</th>`).join('') + '</tr></thead>';
+
+  let tbody;
+  if (needSpec) {
+    tbody = `<tbody><tr><td colspan="${cols.length+1}" style="text-align:center;color:#888;padding:26px 10px">
+      ⬆️ Оберіть спеціальність вище, щоб побачити список вступників.
+    </td></tr></tbody>`;
+  } else if (!filtered.length) {
+    tbody = `<tbody><tr><td colspan="${cols.length+1}" style="text-align:center;color:#888;padding:26px 10px">
+      Нічого не знайдено за поточними фільтрами.
+    </td></tr></tbody>`;
+  } else {
+    // Показуємо ВСІ записи, без обрізання
+    tbody = '<tbody>' + filtered.map((a, idx) => {
+      const cells = cols.map(c => `<td>${a[c]||'—'}</td>`).join('');
+      return `<tr>
+        <td style="white-space:nowrap">
+          <button class="btn-preview" onclick="previewOne(${idx})">Перегляд</button>
+          <button class="btn-preview" style="margin-left:4px;background:#1565c0;color:#fff;border-color:#1565c0" onclick="generateDocx(${idx})">DOCX</button>
+        </td>
+        ${cells}
+      </tr>`;
+    }).join('') + '</tbody>';
+  }
+
+  document.getElementById('ptbl').innerHTML = thead + tbody;
+  document.getElementById('cntBadge').textContent = filtered.length + ' / ' + applicants.length;
+  document.getElementById('genCount').textContent = filtered.length;
+}
+
+function renderPreview() {
+  // Нічого не показуємо, поки не обрано спеціальність
+  filtered = [];
+  populateFilters();
+  renderTable(true);
+  document.getElementById('previewCard').style.display = 'block';
+}
+
+function resetApp() {
+  applicants = [];
+  filtered   = [];
+  fi.value = '';
+  document.getElementById('fltSearch').value = '';
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('statusNote').style.display = 'none';
+}
+
+// ====================================================
+// HELPERS
+// ====================================================
+function g(obj, key) { return (obj[key] || '').trim(); }
+
+// Конвертує Excel serial date (число) у рядок ДД.ММ.РРРР
+// Якщо вже рядок з датою — повертає як є
+// Паспорт, виданий ДО 01.08.2022 — дані ненадійні, поля лишаємо порожніми
+const PASSPORT_CUTOFF = new Date(2022, 7, 1);   // 01.08.2022
+function isOldPassport(ddmmyyyy) {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(String(ddmmyyyy || '').trim());
+  if (!m) return false;                          // немає дати — не блокуємо
+  const d = new Date(+m[3], +m[2] - 1, +m[1]);
+  return d < PASSPORT_CUTOFF;
+}
+
+function excelDate(val) {
+  if (!val && val !== 0) return '';
+  if (typeof val === 'string') {
+    // вже відформатована дата
+    if (/\d{2}\.\d{2}\.\d{4}/.test(val)) return val;
+    // може бути числом у рядку
+    val = val.trim();
+  }
+  const n = Number(val);
+  if (isNaN(n) || n < 1) return String(val);
+  // Excel serial: 1 = 01.01.1900, враховуємо баг з 1900 (лютий)
+  const d = new Date(Math.round((n - 25569) * 86400000));
+  const day = String(d.getUTCDate()).padStart(2,'0');
+  const mon = String(d.getUTCMonth()+1).padStart(2,'0');
+  const yr  = d.getUTCFullYear();
+  return `${day}.${mon}.${yr}`;
+}
+
+function parseName(full) {
+  // Видаляємо дату народження (формат ДД.ММ.РРРР або ДД.ММ.РР) якщо є в рядку
+  const clean = full.trim().replace(/\d{2}\.\d{2}\.\d{2,4}/g, '').replace(/\s+/g,' ').trim();
+  const p = clean.split(/\s+/);
+  return { last: p[0]||'', first: p[1]||'', mid: p.slice(2).join(' ')||'' };
+}
+
+function getSettings() {
+  return {
+    duration:   document.getElementById('s_duration').value.trim(),
+    year:       document.getElementById('s_year').value.trim(),
+    secretary:  document.getElementById('s_secretary').value.trim(),
+    university: document.getElementById('s_university').value.trim(),
+  };
+}
+
+function isMale(a) {
+  const v = g(a, C.gender).toLowerCase();
+  return v === 'чоловіча' || v === 'ч' || v === 'm' || v === 'male';
+}
+
+const BUDGET_ORDER = '1255'; // номер бюджетного наказу
+
+// ── Конфіг: дата → масив номерів наказів ──────────────────────────────────
+// Доповнюйте тут коли зʼявляться нові накази
+let orderDateConfig = [
+  {
+    date: '13.08.2026',
+    nums: [1255,1256,1257,1258,1259,1260,1261,1262,1263,1264,
+           1265,1266,1267,1268,1269,1270,1271,1272,1273,1274]
+  },
+  {date: '14.08.2026', nums: [1309]},
+  {date: '18.08.2026', nums: [1358,1359,1360,1361,1362,1363,1364,1365,1366,1367,1368,1369]},
+  {date: '20.08.2026', nums: [1437,1438,1439,1440]},
+];
+
+// Знайти дату наказу за його номером у конфігу
+function getOrderDate(orderNum) {
+  const n = parseInt(String(orderNum).replace(/\D/g,''), 10);
+  if (isNaN(n)) return '';
+  for (const grp of orderDateConfig) {
+    if (grp.nums.includes(n)) return grp.date;
+  }
+  return '';
+}
+// ──────────────────────────────────────────────────────────────────────────
+
+// Розпарсити номер і дату з колонки "Наказ про зарахування"
+// Формат: "Наказ про зарахування на навчання 1255 СК від 13.08.2026"
+function parseOrderStr(raw) {
+  const numMatch  = raw.match(/\b(\d{3,5})\s*(?:«?СК»?)/i);
+  const dateMatch = raw.match(/від\s+(\d{2}\.\d{2}\.\d{4})/i);
+  return {
+    num:  numMatch  ? numMatch[1] + ' «СК»' : raw,
+    date: dateMatch ? dateMatch[1] : ''
+  };
+}
+
+function getFunding(a) {
+  const isBudget = g(a, C.order).replace(/\D/g,'').includes(BUDGET_ORDER);
+  return { budget: isBudget, contract: !isBudget };
+}
+
+// Перевірка чи є тип документа посвідченням особи (не освітнім)
+function isIdentityDoc(str) {
+  if (!str) return false;
+  const s = str.toLowerCase();
+  // Освітні документи — не є посвідченням особи
+  if (s.includes('здобуття') || s.includes('загальн') || s.includes('атестат') ||
+      s.includes('диплом') || s.includes('освіт')) return false;
+  return true;
+}
+
+function getCategory(a) {
+  const ct = g(a,C.compType).toLowerCase().trim();
+  if (ct.includes('співбесід')) return 'interview';
+  if (ct.includes('квот') || ct.includes('пільг') || ct.includes('іспит')) return 'quota';
+  return 'general';
+}
+
+function eduDocStr(a) {
+  const t   = g(a,C.docType), s = g(a,C.docSeries), n = g(a,C.docNum);
+  const d   = excelDate(g(a,C.docDate)), iss = g(a,C.docIssuer);
+  const hon = g(a,C.honors);
+  let str = t || 'Документ про освіту';
+  if (s) str += ' ' + s;
+  if (n) str += ' № ' + n;
+  if (d) str += ', виданий ' + d + ' р.';
+  if (iss) str += ' ' + iss;
+  if (hon && !/^(ні|no|0|false|-)$/i.test(hon) && hon !== '') str += ' (з відзнакою)';
+  str += ' + додаток (копії)';
+  return str;
+}
+
+function chkBox(checked) {
+  return `<span class="chk${checked?' chk-x':''}"></span>`;
+}
+
+// ====================================================
+// GENERATE
+// ====================================================
+function generateForms() {
+  if (!filtered.length) { alert('Немає вступників для генерації (перевір фільтри)'); return; }
+  const s = getSettings();
+  const html = filtered.map(a => form201(a,s) + form1031(a,s)).join('');
+  document.getElementById('printArea').innerHTML = html;
+  // Зробити форми редагованими
+  document.getElementById('printArea').querySelectorAll('.form-page').forEach(p => {
+    p.contentEditable = 'true';
+    p.style.outline = 'none';
+  });
+  document.getElementById('printArea').classList.add('shown');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'flex';
+  window.scrollTo(0,0);
+}
+
+function goBack() {
+  document.getElementById('printArea').classList.remove('shown');
+  document.getElementById('printArea').innerHTML = '';
+  document.getElementById('app').style.display = '';
+  document.getElementById('toolbar').style.display = 'none';
+}
+
+// ====================================================
+// ФОТО ВСТУПНИКА — сховище та редагування
+// ====================================================
+// PHOTOS[fileNum] = { src: dataURL, x: 0, y: 0, scale: 1 }
+const PHOTOS = {};
+
+function photoBoxHTML(fnum) {
+  const key = String(fnum || '');
+  const p   = PHOTOS[key];
+  const img = p
+    ? `<img src="${p.src}" style="transform:translate(-50%,-50%) translate(${p.x}px,${p.y}px) scale(${p.scale})">`
+    : '';
+  return `<div class="photo-box${p ? ' has-img' : ''}" data-ph="${esc(key)}"
+       contenteditable="false" onmousedown="phDown(event,this)" onwheel="phWheel(event,this)">
+    ${img}
+    <span class="ph-hint">фото</span>
+    <span class="ph-ctrl" contenteditable="false">
+      <button type="button" onclick="phPick(event,this)" title="Обрати файл">⬆</button>
+      <button type="button" onclick="phZoom(event,this,1.15)" title="Збільшити">+</button>
+      <button type="button" onclick="phZoom(event,this,0.87)" title="Зменшити">−</button>
+      <button type="button" onclick="phFit(event,this)" title="Вписати">⤢</button>
+      <button type="button" onclick="phClear(event,this)" title="Видалити">✕</button>
+    </span>
+  </div>`;
+}
+
+function phBox(el){ return el.closest('.photo-box'); }
+function phKey(el){ return phBox(el).dataset.ph; }
+
+// застосувати трансформацію до ВСІХ копій цього фото (модалка + друк)
+function phRender(key) {
+  const p = PHOTOS[key];
+  document.querySelectorAll(`.photo-box[data-ph="${CSS.escape(key)}"]`).forEach(box => {
+    let img = box.querySelector('img');
+    if (!p) {
+      if (img) img.remove();
+      box.classList.remove('has-img');
+      return;
+    }
+    if (!img) {
+      img = document.createElement('img');
+      box.insertBefore(img, box.firstChild);
+    }
+    if (img.getAttribute('src') !== p.src) img.src = p.src;
+    img.style.transform =
+      `translate(-50%,-50%) translate(${p.x}px,${p.y}px) scale(${p.scale})`;
+    box.classList.add('has-img');
+  });
+}
+
+// вписати фото у рамку (cover)
+function phFitCalc(key, natW, natH) {
+  const p = PHOTOS[key]; if (!p) return;
+  const BW = 90, BH = 110;
+  p.scale = Math.max(BW / natW, BH / natH);
+  p.x = 0; p.y = 0;
+  phRender(key);
+}
+
+function phPick(ev, el) {
+  ev.stopPropagation(); ev.preventDefault();
+  const key = phKey(el);
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      const probe = new Image();
+      probe.onload = () => {
+        PHOTOS[key] = { src: fr.result, x: 0, y: 0, scale: 1 };
+        phRender(key);
+        phFitCalc(key, probe.naturalWidth, probe.naturalHeight);
+      };
+      probe.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  };
+  inp.click();
+}
+
+function phZoom(ev, el, k) {
+  ev.stopPropagation(); ev.preventDefault();
+  const key = phKey(el), p = PHOTOS[key]; if (!p) return;
+  p.scale = Math.min(12, Math.max(0.05, p.scale * k));
+  phRender(key);
+}
+
+function phFit(ev, el) {
+  ev.stopPropagation(); ev.preventDefault();
+  const key = phKey(el), p = PHOTOS[key]; if (!p) return;
+  const probe = new Image();
+  probe.onload = () => phFitCalc(key, probe.naturalWidth, probe.naturalHeight);
+  probe.src = p.src;
+}
+
+function phClear(ev, el) {
+  ev.stopPropagation(); ev.preventDefault();
+  const key = phKey(el);
+  delete PHOTOS[key];
+  phRender(key);
+}
+
+function phWheel(ev, box) {
+  if (!PHOTOS[box.dataset.ph]) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const p = PHOTOS[box.dataset.ph];
+  p.scale = Math.min(12, Math.max(0.05, p.scale * (ev.deltaY < 0 ? 1.1 : 0.91)));
+  phRender(box.dataset.ph);
+}
+
+// перетягування фото всередині рамки
+function phDown(ev, box) {
+  if (ev.target.closest('.ph-ctrl')) return;      // клік по кнопці — не тягнемо
+  const key = box.dataset.ph;
+  const p = PHOTOS[key];
+  if (!p) {                                        // фото ще нема — відкрити діалог
+    ev.preventDefault();
+    phPick(ev, box.querySelector('.ph-ctrl button') || box);
+    return;
+  }
+  ev.preventDefault(); ev.stopPropagation();
+  const sx = ev.clientX, sy = ev.clientY, ox = p.x, oy = p.y;
+  const move = e => { p.x = ox + (e.clientX - sx); p.y = oy + (e.clientY - sy); phRender(key); };
+  const up   = () => { document.removeEventListener('mousemove', move);
+                       document.removeEventListener('mouseup', up); };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+}
+
+// ====================================================
+// ФОРМА Н-2.01
+// ====================================================
+function form201(a, s) {
+  const nm    = parseName(g(a,C.pib));
+  const fnum  = g(a,C.fileNum);
+  const fac   = g(a,C.faculty);
+  const prog  = g(a,C.program);
+  const spec  = g(a,C.specialty);
+  const lvl   = g(a,C.level);
+  const sf    = g(a,C.studyForm);
+  const orderRaw  = g(a, C.order);
+  const orderParsed = parseOrderStr(orderRaw);
+  // Дата: спочатку з конфігу (за номером наказу), потім витягуємо з тексту колонки
+  const orderDate = getOrderDate(orderParsed.num) || orderParsed.date;
+  const lvlFull  = lvl + (s.duration ? ` (${s.duration})` : '');
+
+  return `
+<div class="form-page">
+
+  <!-- 1. Наказ: 18pt bold, праворуч -->
+  <p style="text-align:right;font-size:18pt;font-weight:bold;margin:0;text-decoration:underline">
+    Наказ №&nbsp;${esc(orderParsed.num)||'_________________________'}&nbsp;
+    ${orderDate ? 'від&nbsp;&nbsp;'+esc(orderDate)+'&nbsp;р.' : ''}
+  </p>
+
+  <!-- 2. Денна: 14pt bold, праворуч, ОКРЕМИЙ рядок -->
+  <p style="text-align:right;font-size:14pt;font-weight:bold;margin:0 0 3px">${esc(sf)}</p>
+
+  <!-- 3. Номер справи + ПІБ: 21pt bold -->
+  <table class="ft ft-border" style="margin-bottom:1px">
+    <tr>
+      <td style="width:30%;padding:4px 8px;font-size:21pt;font-weight:bold"><span class="fp-mark">${esc(fnum)}</span></td>
+      <td style="padding:4px 8px;font-size:21pt;font-weight:bold"><span class="fp-mark">${esc([nm.last,nm.first,nm.mid].filter(Boolean).join(' '))}</span></td>
+    </tr>
+  </table>
+
+  <!-- 4. Форма Н-2.01: 14pt bold, праворуч -->
+  <p style="text-align:right;font-size:14pt;font-weight:bold;margin:0">Форма № Н-2.01</p>
+
+  <div style="flex:1.5"></div>
+
+  <!-- 5. Університет: 14pt center -->
+  <table class="ft" style="margin-bottom:2px">
+    <tr><td style="text-align:center;padding:3px 8px;border-bottom:1px solid #000;font-size:14pt">${esc(s.university)}</td></tr>
+  </table>
+  <p class="fp-small" style="text-align:center;margin:0">(повне найменування вищого навчального закладу)</p>
+
+  <div style="flex:1"></div>
+
+  <!-- 6. Факультет: 14pt, підпис 8pt у 2-му рядку таблиці -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:42%;padding:3px 6px;font-size:14pt">Інститут, факультет, відділення</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt">${esc(fac)}</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(найменування інституту, факультету, відділення)</td>
+    </tr>
+  </table>
+
+  <div style="flex:1"></div>
+
+  <!-- 7. Освітня програма -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:30%;padding:3px 6px;font-size:14pt">Освітня програма</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt">"<span class="fp-mark">${esc(prog)}</span>"</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(шифр і назва)</td>
+    </tr>
+  </table>
+
+  <div style="flex:1"></div>
+
+  <!-- 8. Спеціальність -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:25%;padding:3px 6px;font-size:14pt">Спеціальність</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt"><span class="fp-mark">${esc(spec)}</span></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(шифр і назва)</td>
+    </tr>
+  </table>
+
+  <div style="flex:1"></div>
+
+  <!-- 9. Рівень освіти -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:50%;padding:3px 6px;font-size:14pt">Рівень вищої освіти/освітньо-кваліфікаційний рівень</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt"><span class="fp-mark">${esc(lvlFull)}</span></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(молодший спеціаліст, бакалавр, спеціаліст, магістр)</td>
+    </tr>
+  </table>
+
+  <div style="flex:1"></div>
+
+  <!-- 10. Форма навчання -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:30%;padding:3px 6px;font-size:14pt">Форма навчання</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt"><span class="fp-mark">${esc(sf)}</span></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(денна, вечірня, заочна, дистанційна)</td>
+    </tr>
+  </table>
+
+  <div style="flex:2.5"></div>
+
+  <!-- 11. ОСОБОВА СПРАВА СТУДЕНТА: 20pt bold center -->
+  <div class="fp-section">ОСОБОВА СПРАВА СТУДЕНТА</div>
+
+  <div style="flex:1"></div>
+
+  <!-- 12. ПІБ: 14pt -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:22%;padding:3px 6px;font-size:14pt">Прізвище</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt"><span class="fp-mark">${esc(nm.last)}</span></td>
+    </tr>
+    <tr>
+      <td style="padding:3px 6px;font-size:14pt">Ім'я</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt"><span class="fp-mark">${esc(nm.first)}</span></td>
+    </tr>
+    <tr>
+      <td style="padding:3px 6px;font-size:14pt">По батькові</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000;font-size:14pt"><span class="fp-mark">${esc(nm.mid)}</span></td>
+    </tr>
+  </table>
+
+  <div style="flex:1.5"></div>
+
+  <!-- 13. Дати: 14pt -->
+  <p style="font-size:14pt;margin:0 0 5px;text-align:center">
+    Рік вступу до вищого навчального закладу&nbsp;&nbsp;<span class="fp-ul"><span class="fp-mark">${esc(s.year)}</span></span>
+  </p>
+  <p style="font-size:14pt;margin:0 0 5px">
+    Розпочато &nbsp;&nbsp;"____" ______________________________<span class="fp-mark">${esc(s.year)}</span> року
+  </p>
+  <p style="font-size:14pt;margin:0 0 5px">
+    Закінчено &nbsp;"____" _________________________________ 20___ року
+  </p>
+  <p style="font-size:14pt;margin:0 0 5px">
+    Передано в архів &nbsp;"____" ___________________________ 20___ року
+  </p>
+  <p style="font-size:14pt;margin:0">
+    за описом № _______ &nbsp;від &nbsp;"____" _____________________ 20___ року
+  </p>
+
+</div>`;
+}
+
+// ====================================================
+// ФОРМА Н-1.03.1
+// ====================================================
+function form1031(a, s) {
+  const nm     = parseName(g(a,C.pib));
+  const fnum   = g(a,C.fileNum);
+  const fac    = g(a,C.faculty);
+  const prog   = g(a,C.program);
+  const spec   = g(a,C.specialty);
+  const lvl    = g(a,C.level);
+  const dt     = g(a,C.dpo) || 'Паспорт громадянина України з безконтактним електронним носієм';
+  const ds     = g(a,C.dpoSeries);
+  const _dnDigits = (g(a,C.dpoNum)||'').replace(/\D/g,'');
+  const dn     = _dnDigits ? _dnDigits.padStart(9,'0') : '';
+  const dd     = excelDate(g(a,C.dpoDate));
+  const di     = g(a,C.dpoIssuer);
+  // паспорт до 01.08.2022 — поля лишаємо порожніми для ручного заповнення
+  const oldPass = isOldPassport(dd);
+  const dsShow  = oldPass ? '' : ds;
+  const dnShow  = oldPass ? '' : dn;
+  const male   = isMale(a);
+  const {budget, contract} = getFunding(a);
+  const cat    = getCategory(a);
+  const edu    = eduDocStr(a);
+
+  // Document list
+  const docs = [
+    'Заява',
+    edu,
+    `${esc(dt)} (копія)`,
+    'Витяг з реєстру територіальної громади',
+    'Картка платника податків (копія)',
+    male
+      ? 'Військово-обліковий документ (копія)'
+      : 'Військово-обліковий документ (копія) — не потрібно',
+    'Договір про навчання в закладі вищої освіти',
+    ...(contract ? ['Договір про надання платної освітньої послуги для підготовки фахівців'] : []),
+  ];
+
+  const docRows = docs.map((d,i) => `
+    <tr>
+      <td style="text-align:center;border:1px solid #000;padding:3px 4px">${i+1}</td>
+      <td style="border:1px solid #000;padding:3px 6px">${d}</td>
+      <td style="border:1px solid #000;padding:3px 4px"></td>
+      <td style="border:1px solid #000;padding:3px 4px"></td>
+      <td style="border:1px solid #000;padding:3px 4px"></td>
+    </tr>`).join('');
+
+  return `
+<div class="form-page" style="font-size:10pt">
+
+  <!-- Заголовок: фото ЗЛІВА, "Форма № Н-1.03.1" СПРАВА -->
+  <table class="ft" style="margin-bottom:4px">
+    <tr>
+      <td style="width:26%;vertical-align:top;padding:0">
+        ${photoBoxHTML(fnum)}
+      </td>
+      <td style="vertical-align:top;text-align:right;padding:0;font-size:14pt">
+        <b>Форма № Н-1.03.1</b>
+      </td>
+    </tr>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- Номер справи (підкреслення) + caption у 2-му рядку -->
+  <table class="ft" style="margin-bottom:0;font-size:12pt;font-weight:bold">
+    <tr>
+      <td style="width:52%;padding:4px 6px">ОПИС ОСОБОВОЇ СПРАВИ №</td>
+      <td style="padding:4px 6px;border-bottom:1px solid #000"><span class="fp-mark">${esc(fnum)}</span></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;font-weight:normal;padding:1px 6px">(за журналом реєстрації вступників)</td>
+    </tr>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- ПІБ рядок 1: Прізвище + Ім'я на одному рядку (12pt) -->
+  <table class="ft" style="margin-bottom:0;font-size:12pt">
+    <tr>
+      <td style="width:18%;padding:3px 6px">Прізвище</td>
+      <td style="width:30%;padding:3px 6px;border-bottom:1px solid #000"><span class="fp-mark">${esc(nm.last)}</span></td>
+      <td style="width:10%;padding:3px 6px">Ім'я</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000"><span class="fp-mark">${esc(nm.first)}</span></td>
+    </tr>
+  </table>
+  <!-- ПІБ рядок 2: По батькові (12pt) -->
+  <table class="ft" style="margin-bottom:0;font-size:12pt">
+    <tr>
+      <td style="width:22%;padding:3px 6px">По батькові</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000"><span class="fp-mark">${esc(nm.mid)}</span></td>
+    </tr>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- Факультет: 2-рядкова таблиця з підписом -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:46%;padding:3px 6px">Інститут/факультет/відділення</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000">${esc(fac)}</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(найменування інституту, факультету, відділення)</td>
+    </tr>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- Рівень: 2-рядкова таблиця з підписом -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:46%;padding:3px 6px">Освітньо-кваліфікаційний рівень/ступінь</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000">${esc(lvl)}${lvl && lvl.toLowerCase().includes('бакалавр') ? ' (3р. 10 міс.)' : ''}</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(бакалавр/магістр/доктор філософії)</td>
+    </tr>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- Програма / Спеціальність: 2-рядкова таблиця -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:40%;padding:3px 6px">Освітня програма / спеціальність</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000"><span class="fp-mark">${esc(prog)}</span> / ${esc(spec)}</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(найменування освітньої програми / спеціальності)</td>
+    </tr>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- Документ особи: 2-рядкова таблиця -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:46%;padding:3px 6px">Пред'явлений документ, що посвідчує особу:</td>
+      <td style="padding:3px 6px;border-bottom:1px solid #000"><span class="fp-mark">${esc(dt)}</span></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 6px">(паспорт/свідоцтво про народження/інше)</td>
+    </tr>
+  </table>
+  <div style="flex:0.3"></div>
+
+  <!-- Серія, №, Виданий: 2-рядкова таблиця -->
+  <table class="ft" style="margin-bottom:0">
+    <tr>
+      <td style="width:10%;padding:3px 5px">Серія</td>
+      <td style="width:8%;padding:3px 2px;border-bottom:1px solid #000">${esc(dsShow)}&nbsp;</td>
+      <td style="width:5%;padding:3px 5px">№</td>
+      <td style="width:22%;padding:3px 5px;border-bottom:1px solid #000"><span class="fp-mark">${esc(dnShow)}</span></td>
+      <td style="padding:3px 5px;border-bottom:1px solid #000">
+        Виданий${oldPass ? '&nbsp;,' : ` <span class="fp-mark">${esc(dd)}</span>${dd?',':''} <span class="fp-mark">${esc(di)}</span>`}
+      </td>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td style="text-align:center;font-size:8.5pt;padding:1px 5px">(ким та коли виданий)</td>
+    </tr>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- Перелік документів -->
+  <table class="ft" style="margin-bottom:0;border-collapse:collapse">
+    <thead>
+      <tr>
+        <th style="border:1px solid #000;padding:2px 4px;width:7%;text-align:center">№<br>з/п</th>
+        <th style="border:1px solid #000;padding:2px 6px">Назва документів</th>
+        <th style="border:1px solid #000;padding:2px 4px;width:11%">Кількість аркушів</th>
+        <th style="border:1px solid #000;padding:2px 4px;width:17%">Дата вилучення і місце знаходження документа</th>
+        <th style="border:1px solid #000;padding:2px 4px;width:14%">Дата повернення документа в особову справу</th>
+      </tr>
+    </thead>
+    <tbody>${docRows}</tbody>
+  </table>
+  <div style="flex:0.5"></div>
+
+  <!-- Категорія -->
+  <p style="margin:0 0 2px;font-size:10pt"><b>Категорія при зарахуванні (вказати необхідне):</b></p>
+  <table class="ft" style="margin-bottom:0;font-size:8pt">
+    <tr>
+      <td style="width:5%">${chkBox(cat==='general')}</td>
+      <td style="width:36%">&nbsp;- на загальних підставах</td>
+      <td style="width:5%">${chkBox(cat==='quota')}</td>
+      <td style="width:26%">&nbsp;- за іспитами та/або квотами</td>
+      <td style="width:5%">${chkBox(cat==='interview')}</td>
+      <td>&nbsp;- за співбесідою</td>
+    </tr>
+  </table>
+  <div style="flex:0.3"></div>
+
+  <!-- Фінансування -->
+  <p style="margin:0 0 2px;font-size:10pt"><b>Джерело фінансування (вказати необхідне):</b></p>
+  <table class="ft" style="margin-bottom:0;font-size:8pt">
+    <tr>
+      <td style="width:5%">${chkBox(budget)}</td>
+      <td style="width:36%">&nbsp;- держзамовлення</td>
+      <td style="width:5%">${chkBox(contract)}</td>
+      <td>&nbsp;- кошти фізичних/юридичних осіб</td>
+    </tr>
+  </table>
+  <div style="flex:1"></div>
+
+  <!-- Підпис секретаря -->
+  <table style="width:100%;border-collapse:collapse;font-size:10pt">
+    <tr>
+      <td style="width:55%;vertical-align:bottom;padding-bottom:2px">
+        Відповідальний секретар приймальної (відбіркової) комісії
+      </td>
+      <td style="width:20%;text-align:center;vertical-align:bottom;padding:0 6px">
+        <div style="height:45px"></div>
+        <div style="border-top:1px solid #000;font-size:7.5pt;text-align:center">(підпис)</div>
+      </td>
+      <td style="width:25%;vertical-align:bottom;padding-left:8px">
+        <div style="border-bottom:1px solid #000;padding-bottom:2px">
+          <span class="fp-mark">${esc(s.secretary)}</span>
+        </div>
+        <div style="font-size:7.5pt;text-align:center">(ПІБ)</div>
+      </td>
+    </tr>
+  </table>
+
+</div>`;
+}
+
+// ====================================================
+// MODAL PREVIEW
+// ====================================================
+function previewOne(idx) {
+  const a = filtered[idx];
+  const s = getSettings();
+  const html = form201(a, s) + form1031(a, s);
+  const nm = parseName(g(a, C.pib));
+
+  document.getElementById('modalTitle').textContent =
+    `${nm.last} ${nm.first} ${nm.mid} — ${g(a, C.fileNum)}`;
+  document.getElementById('modalBody').innerHTML = html;
+  // Зробити всі поля форм редагованими прямо у модалці
+  document.getElementById('modalBody').querySelectorAll('.form-page').forEach(p => {
+    p.contentEditable = 'true';
+    p.style.outline = 'none';
+  });
+  document.getElementById('modalOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  document.getElementById('modalBody').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+
+// ── DOCX генерація ────────────────────────────────────────────────────────
+
+const DOCX_TEMPLATE_B64 = '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';
+
+function xmlEsc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+}
+
+function eduDocStrPlain(a) {
+  const t   = g(a,C.docType), s2 = g(a,C.docSeries), n = g(a,C.docNum);
+  const d   = excelDate(g(a,C.docDate)), iss = g(a,C.docIssuer);
+  const hon = g(a,C.honors);
+  let str = t || 'Документ про освіту';
+  if (s2) str += ' ' + s2;
+  if (n)  str += ' № ' + n;
+  if (d)  str += ', виданий ' + d + ' р.';
+  if (iss) str += ' ' + iss;
+  if (hon && !/^(ні|no|0|false|-)$/i.test(hon) && hon !== '') str += ' (з відзнакою)';
+  str += ' + додаток (копії)';
+  return str;
+}
+
+const TNR_FMT = '<w:rFonts w:ascii="Times New Roman" w:eastAsia="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="20"/><w:szCs w:val="20"/>';
+
+function makeDocxRow(num, text) {
+  const emptyCell = (w) =>
+    `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:rPr>${TNR_FMT}</w:rPr></w:pPr></w:p></w:tc>`;
+  return `<w:tr>` +
+    `<w:tc><w:tcPr><w:tcW w:w="421" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/><w:rPr>${TNR_FMT}</w:rPr></w:pPr><w:r><w:rPr>${TNR_FMT}</w:rPr><w:t>${num}</w:t></w:r></w:p></w:tc>` +
+    `<w:tc><w:tcPr><w:tcW w:w="5645" w:type="dxa"/></w:tcPr><w:p><w:pPr><w:rPr>${TNR_FMT}</w:rPr></w:pPr><w:r><w:rPr>${TNR_FMT}</w:rPr><w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r></w:p></w:tc>` +
+    emptyCell(1017) + emptyCell(1417) + emptyCell(1694) +
+    `</w:tr>`;
+}
+
+async function generateDocx(idx) {
+  const a = filtered[idx];
+  const s = getSettings();
+  const nm     = parseName(g(a,C.pib));
+  const fnum   = g(a,C.fileNum);
+  const fac    = g(a,C.faculty);
+  const prog   = g(a,C.program);
+  const spec   = g(a,C.specialty);
+  const lvl    = g(a,C.level);
+  const sf     = g(a,C.studyForm);
+  const orderRaw   = g(a,C.order);
+  const orderParsed = parseOrderStr(orderRaw);
+  const orderDate  = getOrderDate(orderParsed.num) || orderParsed.date;
+  const lvlFull   = lvl + (s.duration ? ` (${s.duration})` : '');
+  const dt     = g(a,C.dpo) || 'Паспорт громадянина України з безконтактним електронним носієм';
+  const ds     = g(a,C.dpoSeries);
+  const _dnDigits = (g(a,C.dpoNum)||'').replace(/\D/g,'');
+  const dn     = _dnDigits ? _dnDigits.padStart(9,'0') : '';
+  const dd     = excelDate(g(a,C.dpoDate));
+  const di     = g(a,C.dpoIssuer);
+  // паспорт до 01.08.2022 — поля лишаємо порожніми для ручного заповнення
+  const oldPass = isOldPassport(dd);
+  const dsOut   = oldPass ? '' : ds;
+  const dnOut   = oldPass ? '' : dn;
+  const issuedLine = oldPass
+    ? 'Виданий ,'
+    : `Виданий ${dd}${dd ? ',' : ''} ${di}`.replace(/\s+/g,' ').trim();
+  const male   = isMale(a);
+  const {budget, contract} = getFunding(a);
+  const cat    = getCategory(a);
+  const edu    = eduDocStrPlain(a);
+  const sfUC   = sf ? sf.charAt(0).toUpperCase() + sf.slice(1) : sf;
+
+  // Build order line (keep the underscore style of the original)
+  const orderNum  = orderParsed.num || '_________________________';
+  const orderLine = `Наказ №_${orderNum}_ від __${orderDate ? orderDate + ' р' : '____________'}.__ `;
+
+  // Document list
+  const docs = [
+    'Заява',
+    edu,
+    `${dt} (копія)`,
+    'Витяг з реєстру територіальної громади',
+    'Картка платника податків (копія)',
+    male ? 'Військово-обліковий документ (копія)' : 'Військово-обліковий документ (копія) — не потрібно',
+    'Договір про навчання в закладі вищої освіти',
+    ...(contract ? ['Договір про надання платної освітньої послуги для підготовки фахівців'] : []),
+  ];
+  const docsRowsXml = docs.map((d,i) => makeDocxRow(i+1, d)).join('');
+
+  const progSpec = `${prog} / ${spec}`;
+
+  // Category & funding check marks
+  const CHK = (v) => v ? 'х' : ' ';
+
+  // Load template and replace placeholders
+  const b64 = DOCX_TEMPLATE_B64;
+  const bytes = atob(b64);
+  const ab = new ArrayBuffer(bytes.length);
+  const ia = new Uint8Array(ab);
+  for (let i = 0; i < bytes.length; i++) ia[i] = bytes.charCodeAt(i);
+
+  const zip = await JSZip.loadAsync(ab);
+  let xml = await zip.file('word/document.xml').async('string');
+
+  const rep = (ph, val) => { xml = xml.split(ph).join(xmlEsc(String(val||''))); };
+  // цілий рядок "Виданий ..." — прибирає шаблонне "орган, що видав"
+  rep('Виданий {{DOC_DATE}}, орган, що видав {{DOC_ISSUER}}', issuedLine);
+  rep('{{ORDER_LINE}}',    orderLine);
+  rep('{{STUDY_FORM_UC}}', sfUC);
+  rep('{{FILE_NUM}}',      fnum);
+  rep('{{PIB_FULL}}',      `${nm.last} ${nm.first} ${nm.mid}`);
+  rep('{{FACULTY}}',       fac);
+  rep('{{PROGRAM}}',       prog);
+  rep('{{SPECIALTY}}',     spec);
+  rep('{{LEVEL_FULL}}',    lvlFull);
+  rep('{{STUDY_FORM}}',    sf);
+  rep('{{LAST_NAME}}',     nm.last);
+  rep('{{FIRST_NAME}}',    nm.first);
+  rep('{{PATR_NAME}}',     nm.mid);
+  rep('{{YEAR}}',          s.year || new Date().getFullYear());
+  rep('{{LEVEL}}',         lvl);
+  rep('{{PROG_SPEC}}',     progSpec);
+  rep('{{DOC_TYPE}}',      dt);
+  rep('{{DOC_SERIES}}',    dsOut);
+  rep('{{DOC_NUM}}',       dnOut);
+  rep('{{DOC_DATE}}',      dd);
+  rep('{{DOC_ISSUER}}',    di);
+  rep('{{CHK_GENERAL}}',   CHK(cat==='general'));
+  rep('{{CHK_QUOTA}}',     CHK(cat==='quota'));
+  rep('{{CHK_INTERVIEW}}', CHK(cat==='interview'));
+  rep('{{CHK_BUDGET}}',    CHK(budget));
+  rep('{{CHK_CONTRACT}}',  CHK(contract));
+  rep('{{SECRETARY}}',     s.secretary || '');
+
+  // Replace docs placeholder row with actual rows
+  xml = xml.replace(
+    '<w:tr><w:tc><w:p><w:r><w:t>{{DOCS_ROWS}}</w:t></w:r></w:p></w:tc></w:tr>',
+    docsRowsXml
+  );
+
+  zip.file('word/document.xml', xml);
+  const blob = await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${fnum} ${nm.last} ${nm.first}.docx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+// ── Конфіг наказів ────────────────────────────────────────────────────────
+function openOrderCfg() {
+  renderOrderCfgTable();
+  document.getElementById('orderCfgOverlay').classList.remove('hidden');
+}
+
+function closeOrderCfg() {
+  document.getElementById('orderCfgOverlay').classList.add('hidden');
+}
+
+function renderOrderCfgTable() {
+  const tbody = document.getElementById('orderCfgBody');
+  tbody.innerHTML = '';
+  orderDateConfig.forEach((grp, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="border:1px solid #ddd;padding:4px 6px">
+        <input value="${grp.date}" data-i="${i}" data-f="date"
+          style="width:110px;border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:13px">
+      </td>
+      <td style="border:1px solid #ddd;padding:4px 6px">
+        <input value="${grp.nums.join(', ')}" data-i="${i}" data-f="nums"
+          style="width:100%;border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:13px;box-sizing:border-box">
+      </td>
+      <td style="border:1px solid #ddd;padding:4px;text-align:center">
+        <button onclick="deleteOrderCfgRow(${i})" style="background:none;border:none;cursor:pointer;font-size:16px;color:#c00" title="Видалити">🗑</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addOrderCfgRow() {
+  orderDateConfig.push({date: '', nums: []});
+  renderOrderCfgTable();
+  // Фокус на новий рядок
+  const inputs = document.getElementById('orderCfgBody').querySelectorAll('input[data-f="date"]');
+  if (inputs.length) inputs[inputs.length-1].focus();
+}
+
+function deleteOrderCfgRow(i) {
+  orderDateConfig.splice(i, 1);
+  renderOrderCfgTable();
+}
+
+function saveOrderCfg() {
+  const rows = document.getElementById('orderCfgBody').querySelectorAll('tr');
+  const newCfg = [];
+  rows.forEach(tr => {
+    const dateInput = tr.querySelector('input[data-f="date"]');
+    const numsInput = tr.querySelector('input[data-f="nums"]');
+    if (!dateInput || !numsInput) return;
+    const date = dateInput.value.trim();
+    const nums = numsInput.value.split(/[\s,;]+/).map(s => parseInt(s,10)).filter(n => !isNaN(n));
+    if (date) newCfg.push({date, nums});
+  });
+  orderDateConfig = newCfg;
+  closeOrderCfg();
+  // Оновити таблицю якщо вже є дані
+  if (typeof renderTable === 'function' && filtered && filtered.length) renderTable();
+}
+// ──────────────────────────────────────────────────────────────────────────
+
+function printModal() {
+  const content = document.getElementById('modalBody').innerHTML;
+  const win = window.open('', '_blank');
+  const allCss = Array.from(document.styleSheets)
+    .flatMap(s => { try { return Array.from(s.cssRules).map(r=>r.cssText); } catch(e){return [];} })
+    .join('\n');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="UTF-8">
+    <style>
+      body{margin:0;font-family:'Times New Roman',Times,serif}
+      ${allCss}
+      @page{size:A4;margin:0}
+      @media print{
+        .form-page{page-break-after:always;margin:0;box-shadow:none}
+        .form-page:last-child{page-break-after:avoid}
+      }
+    </style>
+    </head><body>${content}</body></html>`);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
+
+// Esc key closes modal
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ====================================================
+// UTIL
+// ====================================================
+function esc(str) {
+  return String(str||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

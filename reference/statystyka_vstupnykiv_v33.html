@@ -1,0 +1,4115 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Статистика вступників</title>
+<style>
+:root{
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:#172033;background:#f4f6f8
+}
+*{box-sizing:border-box}
+body{margin:0;padding:8px}
+main{max-width:1500px;margin:auto}
+h1{font-size:19px;margin:0 0 7px}
+h2{font-size:15px;margin:0 0 6px}
+.panel{
+  background:#fff;border:1px solid #d9dee7;border-radius:10px;
+  padding:8px;margin-bottom:8px
+}
+.controls,.stats,.toolbar{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:end
+}
+label{display:grid;gap:2px;font-size:12px;font-weight:600}
+input,select,button{
+  font:inherit;border:1px solid #b8c0cc;border-radius:7px;
+  padding:5px 7px;background:#fff
+}
+input[type=file]{max-width:340px}
+select{min-width:220px;max-width:500px}
+button{cursor:pointer;font-weight:600}
+button:disabled,select:disabled,input:disabled{opacity:.55;cursor:not-allowed}
+.status{margin-top:5px;font-size:12px;white-space:pre-wrap}
+.ok{color:#176b36}.err{color:#a12622}.muted{color:#606b7b}
+.stats{align-items:stretch}
+.card{
+  min-width:125px;padding:6px 8px;border:1px solid #dfe4eb;
+  border-radius:7px;background:#fafbfc
+}
+.card b{display:block;font-size:17px}
+.table-wrap{overflow:auto;border:1px solid #dfe4eb;border-radius:8px}
+table{border-collapse:collapse;width:100%;background:#fff;font-size:12px}
+th,td{
+  padding:5px 6px;border-bottom:1px solid #e7eaf0;
+  text-align:left;vertical-align:middle
+}
+th{
+  position:sticky;top:0;background:#eef1f5;white-space:nowrap;z-index:1
+}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+th.center,td.center{text-align:center}
+td.nowrap,.nowrap{white-space:nowrap}
+tbody tr:hover{background:#f6f9fc}
+.group-row td{
+  background:#e8edf4;font-weight:700;border-top:2px solid #c8d1de;
+  border-bottom:1px solid #c8d1de;padding:7px 9px
+}
+.group-row:hover{background:transparent}
+.empty{padding:10px;text-align:center;color:#606b7b}
+.toolbar{margin:5px 0}
+.note{font-size:11px;color:#606b7b;margin-top:5px}
+.threshold{
+  width:66px;padding:3px 5px;text-align:right;font-variant-numeric:tabular-nums
+}
+.count-btn{
+  border:0;background:transparent;padding:1px 3px;border-radius:4px;
+  color:#0b57a4;text-decoration:underline;text-underline-offset:2px;
+  font-weight:700;min-width:34px;text-align:right
+}
+.count-btn:hover{background:#e8f1fb}
+.count-btn:disabled{color:#697586;text-decoration:none;opacity:1}
+.detail-head{
+  display:flex;gap:6px;align-items:flex-start;justify-content:space-between;
+  flex-wrap:wrap
+}
+.detail-title{font-size:14px;font-weight:700}
+.detail-meta{font-size:11px;color:#606b7b;margin-top:2px}
+.close-btn{padding:3px 7px}
+.sort-btn{
+  border:0;background:transparent;padding:0;color:inherit;font-weight:700;
+  text-decoration:underline;text-underline-offset:2px
+}
+.priority-chart-list{display:grid;gap:8px}
+.priority-specialty-chart{
+  border:1px solid #dfe4eb;border-radius:7px;background:#fafbfc;padding:7px
+}
+.priority-specialty-title{
+  font-size:12px;font-weight:700;margin:0 0 4px;overflow-wrap:anywhere
+}
+.priority-chart{
+  display:grid;grid-template-columns:repeat(10,minmax(50px,1fr));
+  gap:5px;align-items:end;height:190px;padding:3px 1px 1px;
+  overflow-x:auto
+}
+.priority-item{
+  min-width:58px;height:100%;display:grid;
+  grid-template-rows:31px 25px 1fr 19px;
+  gap:2px;align-items:end;text-align:center
+}
+.priority-count{
+  font-size:10px;line-height:1.25;font-weight:700;
+  font-variant-numeric:tabular-nums;white-space:nowrap
+}
+.priority-count-line{display:block}
+.priority-breakdown{
+  min-height:22px;font-size:10px;line-height:1.1;color:#4f5d70;
+  white-space:nowrap;font-variant-numeric:tabular-nums
+}
+.priority-bar-button{
+  width:100%;height:100%;border:0;padding:0;background:transparent;
+  display:flex;align-items:flex-end;justify-content:center
+}
+.priority-bar{
+  width:min(48px,80%);min-height:2px;height:var(--bar-height);
+  border:1px solid #78889d;border-radius:6px 6px 2px 2px;
+  background:#d9e3ef
+}
+.priority-bar-button:not(:disabled):hover .priority-bar{background:#c3d5e8}
+.priority-bar-button:focus-visible{outline:2px solid #0b57a4;outline-offset:2px}
+.priority-label{font-weight:700}
+.priority-table td.multi{white-space:normal;min-width:180px}
+
+.chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:19px;padding:2px 7px;border-radius:999px;
+  border:1px solid transparent;font-size:11px;font-weight:700;
+  line-height:1.15;white-space:nowrap
+}
+.chip-list{display:flex;flex-wrap:wrap;gap:3px}
+.chip-yes,.score-pass,.status-success{
+  color:#12652d;background:#e7f6eb;border-color:#9fd4ad
+}
+.chip-no,.score-fail,.status-danger{
+  color:#a12424;background:#fdeaea;border-color:#efaaaa
+}
+.status-warning{
+  color:#815500;background:#fff4d4;border-color:#eacb73
+}
+.status-info{
+  color:#145b8f;background:#e7f2fb;border-color:#9fc5e2
+}
+.status-neutral{
+  color:#515d6e;background:#eef1f4;border-color:#c8d0d9
+}
+.score-chip{min-width:48px;font-variant-numeric:tabular-nums}
+
+tfoot td{
+  background:#eef2f6;font-weight:750;border-top:2px solid #9daaba
+}
+.total-label{text-align:left}
+.total-value{text-align:right;font-variant-numeric:tabular-nums}
+
+.duplicate-group-row td{
+  padding:6px 8px;background:#e6edf5;
+  border-top:2px solid #8295aa;border-bottom:1px solid #b7c3d0
+}
+.duplicate-group-row:hover{background:transparent}
+.duplicate-group-head{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px
+}
+.case-code-chip{
+  display:inline-flex;align-items:center;gap:2px;padding:2px 3px 2px 7px;
+  border-radius:5px;background:#fff;border:1px solid #8fa2b6;
+  font-weight:800;font-family:ui-monospace,SFMono-Regular,Consolas,monospace
+}
+.copy-code-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:17px;height:17px;padding:1px;border:0;border-radius:3px;
+  background:transparent;color:#64758a;cursor:pointer;opacity:.22;
+  transition:opacity .12s ease,background .12s ease,color .12s ease
+}
+.case-code-chip:hover .copy-code-btn,
+.copy-code-btn:focus-visible{opacity:.95}
+.copy-code-btn:hover{background:#edf2f7;color:#284b6d}
+.copy-code-btn:focus-visible{outline:1px solid #0b57a4;outline-offset:1px}
+.copy-code-btn svg{width:12px;height:12px;pointer-events:none}
+.copy-code-btn.copied{opacity:1;color:#12652d;background:#e7f6eb}
+
+.table-sort-button{
+  display:flex;align-items:center;gap:3px;width:100%;padding:0;
+  border:0;background:transparent;color:inherit;font:inherit;
+  font-weight:700;text-align:inherit;cursor:pointer
+}
+th.num .table-sort-button{justify-content:flex-end}
+th.center .table-sort-button{justify-content:center}
+.table-sort-button:hover{text-decoration:underline;text-underline-offset:2px}
+.table-sort-button:focus-visible{outline:1px solid #0b57a4;outline-offset:1px}
+.sort-indicator{
+  display:inline-block;min-width:9px;font-size:9px;line-height:1;color:#5e6d7e
+}
+.reset-sort-btn{white-space:nowrap}
+.duplicate-specialty{font-weight:750}
+.duplicate-group-meta{color:#536174;font-weight:600}
+.duplicate-child-row td:first-child{
+  border-left:3px solid #a9b9ca
+}
+.category-groups{display:grid;gap:8px}
+.category-group{
+  border:1px solid #d7dee7;border-radius:7px;background:#fff;overflow:hidden
+}
+.category-group-head{
+  padding:7px 9px;background:#eef3f8;border-bottom:1px solid #d7dee7
+}
+.category-code{
+  display:inline-flex;padding:2px 7px;margin-right:6px;border-radius:5px;
+  background:#173f67;color:#fff;font-weight:800;
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace
+}
+.category-title{font-weight:750}
+.category-benefit{margin-top:4px;color:#586677;font-size:11px;line-height:1.35}
+.category-meta{margin-top:4px;font-size:11px;color:#586677;font-weight:650}
+
+.application-microtable{
+  width:100%;min-width:670px;border-collapse:separate;border-spacing:0;
+  table-layout:fixed;font-size:11px;background:#fbfcfd;
+  border:1px solid #d7dee7;border-radius:6px;overflow:hidden
+}
+.application-microtable th,
+.application-microtable td{
+  padding:4px 5px;border:0;border-right:1px solid #e0e5eb;
+  border-bottom:1px solid #e0e5eb;vertical-align:middle
+}
+.application-microtable th:last-child,
+.application-microtable td:last-child{border-right:0}
+.application-microtable tbody tr:last-child td{border-bottom:0}
+.application-microtable th{
+  position:static;background:#eef3f8;color:#405064;
+  font-size:10px;font-weight:750;white-space:normal
+}
+.application-microtable .micro-specialty{width:36%;overflow-wrap:anywhere}
+.application-microtable .micro-score{width:10%;text-align:center}
+.application-microtable .micro-place{width:15%;text-align:center}
+.application-microtable .micro-case{width:22%;text-align:center}
+.application-microtable .micro-idz{width:17%;text-align:center;overflow-wrap:anywhere}
+.place-chip-budget{
+  color:#12652d;background:#e7f6eb;border-color:#9fd4ad
+}
+.place-chip-contract{
+  color:#145b8f;background:#e7f2fb;border-color:#9fc5e2
+}
+.place-chip-unknown{
+  color:#515d6e;background:#eef1f4;border-color:#c8d0d9
+}
+.category-applications-cell{
+  min-width:690px;padding:5px!important;background:#fff
+}
+
+.reference-details{
+  border:1px solid #d7dee7;border-radius:7px;background:#fff;margin-top:8px
+}
+.reference-details>summary{
+  cursor:pointer;padding:8px 10px;font-weight:750;background:#f3f6f9
+}
+.reference-details[open]>summary{border-bottom:1px solid #d7dee7}
+.reference-details .table-wrap{border:0;border-radius:0}
+.reference-source{padding:6px 10px;font-size:11px;color:#667386}
+
+.report-table-actions{
+  display:flex;align-items:center;flex-wrap:wrap;gap:5px
+}
+.section-title-row{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:6px;margin-bottom:5px
+}
+.section-title-row h2{margin:0}
+.section-title-main{
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0
+}
+.section-count-badge{
+  display:inline;
+  white-space:nowrap;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  color:#687587;
+  font-size:12px;
+  font-weight:600
+}
+.category-group-head{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  flex-wrap:wrap;gap:6px
+}
+.category-group-info{min-width:0;flex:1}
+.category-group-actions{
+  display:flex;align-items:center;gap:4px;flex:0 0 auto
+}
+.table-toggle-btn,.table-pdf-btn{white-space:nowrap}
+.table-toggle-btn[aria-expanded="false"]::before{content:"▸ "}
+.table-toggle-btn[aria-expanded="true"]::before{content:"▾ "}
+.collapsible-table-content[hidden],
+.collapsible-section-content[hidden]{display:none!important}
+
+.section-toggle-btn[aria-expanded="false"]::before{content:"▸ "}
+.section-toggle-btn[aria-expanded="true"]::before{content:"▾ "}
+
+#singleTablePrintArea{display:none}
+.single-table-print-title{
+  font-size:17pt;font-weight:750;margin:0 0 2mm
+}
+.single-table-print-meta{
+  margin:0 0 5mm;font-size:8.5pt;color:#4f5d70
+}
+
+.print-only{display:none}
+.pdf-hint{font-size:11px;color:#606b7b;align-self:center}
+.privacy-disclaimer{
+  margin-top:7px;padding:7px 9px;border-left:3px solid #68788c;
+  background:#f2f5f8;color:#465366;font-size:11px;line-height:1.4
+}
+.privacy-disclaimer strong{color:#263548}
+.idz-value{
+  font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-weight:700;overflow-wrap:anywhere
+}
+.print-report-header{margin:0 0 7mm}
+.print-report-title{font-size:18pt;font-weight:750;margin:0 0 2mm}
+.print-report-meta{
+  display:grid;grid-template-columns:max-content 1fr;gap:1mm 3mm;
+  font-size:9pt
+}
+.print-mono-legend{
+  margin-top:2.5mm;padding-top:2mm;border-top:0.25mm solid #000;
+  font-size:7.5pt;line-height:1.35
+}
+[hidden]{display:none!important}
+
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  :root{color:#000!important;background:#fff!important}
+  *{
+    color:#000!important;
+    background-color:#fff!important;
+    border-color:#000!important;
+    box-shadow:none!important;
+    text-shadow:none!important;
+    -webkit-print-color-adjust:economy!important;
+    print-color-adjust:economy!important
+  }
+  html,body{
+    background:#fff!important;
+    filter:none!important
+  }
+  body{padding:0;font-size:8pt}
+  main{max-width:none;margin:0}
+  .screen-only,.toolbar,.note,.close-btn,.pdf-hint{display:none!important}
+  .print-only{display:block!important}
+  #result{display:block!important}
+  .panel{
+    border:0;border-radius:0;background:#fff;
+    padding:0;margin:0 0 5mm;box-shadow:none
+  }
+  #result>.panel:first-child{break-inside:avoid}
+  h1,h2,.detail-title{color:#000}
+  h2{font-size:11pt;margin:0 0 2mm;break-after:avoid}
+  .stats{gap:3mm}
+  .card{
+    min-width:32mm;padding:2mm 2.5mm;
+    border:0.3mm solid #000!important;
+    background:#fff!important
+  }
+  .card b{font-size:13pt}
+  .table-wrap{overflow:visible;border:0;border-radius:0}
+  table{
+    width:100%;font-size:7.2pt;border-collapse:collapse;
+    page-break-inside:auto
+  }
+  thead{display:table-header-group}
+  tfoot{display:table-row-group}
+  tr{break-inside:avoid;page-break-inside:avoid}
+  th,td{
+    padding:1.1mm 1.3mm;
+    border:0.2mm solid #000!important;
+    vertical-align:top;background:#fff!important
+  }
+  th{
+    position:static;background:#fff!important;color:#000!important;
+    white-space:normal;font-weight:800;
+    border-top:0.35mm solid #000!important;
+    border-bottom:0.45mm solid #000!important
+  }
+  #summaryTable{table-layout:fixed;font-size:6.6pt}
+  #summaryTable th:first-child,
+  #summaryTable td:first-child{width:22%}
+  .count-btn,.sort-btn{
+    color:#000!important;text-decoration:none!important;
+    border:0!important;background:transparent!important;padding:0!important;
+    font-weight:inherit
+  }
+  .threshold{
+    width:100%;border:0!important;background:transparent!important;
+    padding:0!important;text-align:center!important;appearance:textfield
+  }
+  .threshold::-webkit-inner-spin-button,
+  .threshold::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .priority-chart-list{gap:4mm}
+  .priority-specialty-chart{
+    border:0.3mm solid #000!important;border-radius:0;
+    background:#fff!important;padding:2.5mm;break-inside:avoid
+  }
+  .priority-specialty-title{font-size:9pt;margin:0 0 1.5mm}
+  .priority-chart{
+    height:39mm;overflow:visible;gap:1.5mm;
+    grid-template-columns:repeat(10,minmax(0,1fr))
+  }
+  .priority-item{
+    min-width:0;grid-template-rows:8mm 6mm 1fr 4mm;gap:0.5mm
+  }
+  .priority-count{font-size:6.8pt;line-height:1.2}
+  .priority-breakdown{font-size:6.2pt;min-height:0}
+  .priority-bar-button{border:0!important}
+  .priority-bar{
+    width:72%;
+    border:0.35mm solid #000!important;
+    border-radius:0!important;
+    background:#fff!important
+  }
+
+  .group-row td,
+  .duplicate-group-row td,
+  .category-group-head{
+    background:#fff!important;
+    border-top:0.6mm solid #000!important;
+    border-bottom:0.3mm solid #000!important
+  }
+
+  .duplicate-child-row td:first-child{
+    border-left:0.7mm solid #000!important
+  }
+
+  .chip{
+    min-height:0;padding:0.5mm 1.5mm;font-size:6.6pt;
+    border:0.3mm solid #000!important;
+    border-radius:1mm!important;
+    background:#fff!important;color:#000!important
+  }
+
+  .chip-yes::before,
+  .score-pass::before,
+  .status-success::before{
+    content:"✓ ";
+    font-weight:900
+  }
+
+  .chip-no,
+  .score-fail,
+  .status-danger{
+    border:0.65mm double #000!important
+  }
+
+  .chip-no::before,
+  .score-fail::before,
+  .status-danger::before{
+    content:"× ";
+    font-weight:900
+  }
+
+  .status-warning,
+  .place-chip-contract{
+    border-style:dashed!important
+  }
+
+  .status-warning::before{content:"! ";font-weight:900}
+  .status-info{border-style:dotted!important}
+  .status-info::before{content:"i ";font-weight:900}
+  .status-neutral,
+  .place-chip-unknown{border-style:dotted!important}
+
+  .place-chip-budget{
+    border-style:solid!important;
+    font-weight:900
+  }
+  .place-chip-budget::before{content:"✓ "}
+  .place-chip-contract::before{content:""}
+  .place-chip-unknown::before{content:"? "}
+
+  .case-code-chip{
+    padding:0.5mm 1.5mm;font-size:6.6pt;
+    border:0.3mm solid #000!important;
+    border-radius:0.8mm!important;
+    background:#fff!important;color:#000!important
+  }
+
+  .category-code{
+    background:#fff!important;color:#000!important;
+    border:0.45mm solid #000!important;
+    border-radius:0.8mm!important
+  }
+
+  .copy-code-btn,.sort-indicator{display:none!important}
+  .table-sort-button{cursor:default;text-decoration:none!important}
+
+  tfoot td{
+    background:#fff!important;
+    border-top:0.7mm double #000!important;
+    font-weight:900
+  }
+  .detail-head{display:block}
+  .detail-meta{font-size:7.5pt;margin:0 0 1.5mm}
+  #priorityDetailPanel,#detailPanel{break-before:page}
+  .category-group{break-inside:avoid}
+  .application-microtable{
+    min-width:0!important;font-size:6.5pt;border-radius:0;
+    border:0.3mm solid #000!important;background:#fff!important
+  }
+  .application-microtable th,
+  .application-microtable td{
+    padding:0.8mm 1mm;
+    border:0.18mm solid #000!important;
+    background:#fff!important
+  }
+  .application-microtable th{
+    font-size:6pt;font-weight:850;
+    border-bottom:0.4mm solid #000!important
+  }
+  .category-applications-cell{
+    min-width:0!important;background:#fff!important
+  }
+  .reference-details,
+  .reference-details>summary{
+    background:#fff!important;color:#000!important;
+    border-color:#000!important
+  }
+  .reference-details:not([open]){display:none!important}
+  #duplicatesEmpty{display:none!important}
+  #duplicatesPanel.print-empty{display:none!important}
+
+  body.print-single-table main>*:not(#singleTablePrintArea){
+    display:none!important
+  }
+  body.print-single-table #singleTablePrintArea{
+    display:block!important
+  }
+  body.print-single-table #singleTablePrintArea .table-wrap{
+    display:block!important;overflow:visible!important
+  }
+  body.print-single-table #singleTablePrintArea table{
+    width:100%!important
+  }
+  body:not(.print-single-table) #singleTablePrintArea{
+    display:none!important
+  }
+
+  /* Мінімалістичний макет для чорно-білого лазерного друку */
+  .card,
+  .priority-specialty-chart,
+  .category-group,
+  .reference-details,
+  .reference-details>summary,
+  .application-microtable,
+  .case-code-chip,
+  .category-code,
+  .chip{
+    border:0!important;
+    border-radius:0!important;
+    outline:0!important;
+    background:#fff!important
+  }
+
+  .card{
+    padding:1.5mm 0!important;
+    border-bottom:0.25mm solid #000!important
+  }
+
+  table,
+  .application-microtable{
+    border:0!important;
+    border-collapse:collapse!important
+  }
+
+  th,
+  td,
+  .application-microtable th,
+  .application-microtable td{
+    border:0!important;
+    background:#fff!important
+  }
+
+  th,
+  .application-microtable th{
+    border-bottom:0.35mm solid #000!important;
+    font-weight:800
+  }
+
+  tbody>tr>td{
+    border-bottom:0.12mm solid #999!important
+  }
+
+  tbody>tr:last-child>td{
+    border-bottom:0!important
+  }
+
+  .application-microtable tbody>tr>td{
+    border-bottom:0.12mm solid #aaa!important
+  }
+
+  .group-row td,
+  .duplicate-group-row td,
+  .category-group-head{
+    border:0!important;
+    border-bottom:0.3mm solid #000!important;
+    padding-left:0!important;
+    padding-right:0!important
+  }
+
+  .duplicate-child-row td:first-child{
+    border-left:0!important
+  }
+
+  .chip{
+    display:inline!important;
+    padding:0!important;
+    min-height:0!important;
+    font-size:inherit!important;
+    font-weight:700!important
+  }
+
+  .chip-no,
+  .score-fail,
+  .status-danger,
+  .status-warning,
+  .status-info,
+  .status-neutral,
+  .place-chip-contract,
+  .place-chip-budget,
+  .place-chip-unknown{
+    border:0!important
+  }
+
+  .case-code-chip{
+    display:inline!important;
+    padding:0!important;
+    font-weight:800!important;
+    text-decoration:underline;
+    text-decoration-thickness:0.15mm;
+    text-underline-offset:0.4mm
+  }
+
+  .section-count-badge{
+    display:inline!important;
+    padding:0!important;
+    border:0!important;
+    background:#fff!important;
+    color:#000!important;
+    font-weight:900!important
+  }
+
+  .category-code{
+    display:inline!important;
+    padding:0!important;
+    margin-right:1.5mm!important;
+    font-weight:900!important
+  }
+
+  tfoot td{
+    border:0!important;
+    border-top:0.35mm solid #000!important;
+    padding-top:1.3mm!important;
+    font-weight:900
+  }
+
+  .priority-specialty-chart{
+    padding:0 0 3mm!important;
+    border-bottom:0.25mm solid #000!important
+  }
+
+  .priority-bar{
+    width:52%!important;
+    border:0!important;
+    border-radius:0!important;
+    background:#000!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important
+  }
+
+  .reference-details[open]>summary{
+    border:0!important;
+    border-bottom:0.35mm solid #000!important;
+    padding-left:0!important;
+    padding-right:0!important
+  }
+
+  .print-report-header{
+    border:0!important
+  }
+
+  .privacy-disclaimer{
+    margin:2.5mm 0 0!important;padding:2mm 0!important;
+    border:0!important;border-top:0.25mm solid #000!important;
+    background:#fff!important;color:#000!important;
+    font-size:7pt!important;line-height:1.35!important
+  }
+
+  /* Кольоровий звіт — зберігає оформлення сторінки */
+  body.print-mode-color,
+  body.print-mode-color *{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important
+  }
+
+  body.print-mode-color{
+    color:#172033!important;
+    background:#f4f6f8!important
+  }
+
+  body.print-mode-color .print-mono-legend{
+    display:none!important
+  }
+
+  body.print-mode-color .panel{
+    background:#fff!important;
+    border:1px solid #d9dee7!important;
+    border-radius:10px!important;
+    padding:8px!important;
+    margin-bottom:8px!important
+  }
+
+  body.print-mode-color .card{
+    min-width:32mm!important;
+    padding:2mm 2.5mm!important;
+    border:1px solid #dfe4eb!important;
+    border-radius:7px!important;
+    background:#fafbfc!important
+  }
+
+  body.print-mode-color .table-wrap{
+    border:1px solid #dfe4eb!important;
+    border-radius:8px!important;
+    background:#fff!important
+  }
+
+  body.print-mode-color table{
+    background:#fff!important
+  }
+
+  body.print-mode-color th,
+  body.print-mode-color td{
+    border:0!important;
+    border-bottom:1px solid #e7eaf0!important;
+    background:#fff!important;
+    color:#172033!important
+  }
+
+  body.print-mode-color th{
+    background:#eef1f5!important;
+    color:#172033!important;
+    border-bottom:1px solid #d9dee7!important
+  }
+
+  body.print-mode-color th .table-sort-button,
+  body.print-mode-color th .table-sort-button *,
+  body.print-mode-color th .sort-indicator{
+    background:transparent!important;
+    color:inherit!important;
+    border:0!important;
+    box-shadow:none!important
+  }
+
+  body.print-mode-color th .table-sort-button{
+    width:100%!important;
+    padding:0!important;
+    margin:0!important;
+    appearance:none!important;
+    -webkit-appearance:none!important
+  }
+
+  body.print-mode-color tbody tr:hover{
+    background:#f6f9fc!important
+  }
+
+  body.print-mode-color .count-btn{
+    color:#0b57a4!important;
+    text-decoration:underline!important;
+    background:transparent!important
+  }
+
+  body.print-mode-color .threshold{
+    border:1px solid #b8c0cc!important;
+    border-radius:7px!important;
+    background:#fff!important;
+    padding:3px 5px!important
+  }
+
+  body.print-mode-color .priority-specialty-chart{
+    border:1px solid #dfe4eb!important;
+    border-radius:7px!important;
+    background:#fafbfc!important;
+    padding:7px!important
+  }
+
+  body.print-mode-color .priority-bar{
+    width:min(48px,80%)!important;
+    border:1px solid #78889d!important;
+    border-radius:6px 6px 2px 2px!important;
+    background:#d9e3ef!important
+  }
+
+  body.print-mode-color .priority-breakdown{
+    color:#4f5d70!important
+  }
+
+  body.print-mode-color .chip{
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    min-height:19px!important;
+    padding:2px 7px!important;
+    border-radius:999px!important;
+    border:1px solid transparent!important;
+    font-size:11px!important;
+    font-weight:700!important;
+    line-height:1.15!important;
+    background:initial!important
+  }
+
+  body.print-mode-color .chip-yes,
+  body.print-mode-color .score-pass,
+  body.print-mode-color .status-success,
+  body.print-mode-color .place-chip-budget{
+    color:#12652d!important;
+    background:#e7f6eb!important;
+    border-color:#9fd4ad!important
+  }
+
+  body.print-mode-color .chip-no,
+  body.print-mode-color .score-fail,
+  body.print-mode-color .status-danger{
+    color:#a12424!important;
+    background:#fdeaea!important;
+    border-color:#efaaaa!important;
+    border-style:solid!important
+  }
+
+  body.print-mode-color .status-warning{
+    color:#815500!important;
+    background:#fff4d4!important;
+    border-color:#eacb73!important;
+    border-style:solid!important
+  }
+
+  body.print-mode-color .status-info,
+  body.print-mode-color .place-chip-contract{
+    color:#145b8f!important;
+    background:#e7f2fb!important;
+    border-color:#9fc5e2!important;
+    border-style:solid!important
+  }
+
+  body.print-mode-color .status-neutral,
+  body.print-mode-color .place-chip-unknown{
+    color:#515d6e!important;
+    background:#eef1f4!important;
+    border-color:#c8d0d9!important;
+    border-style:solid!important
+  }
+
+  body.print-mode-color .chip-yes::before,
+  body.print-mode-color .score-pass::before,
+  body.print-mode-color .status-success::before,
+  body.print-mode-color .chip-no::before,
+  body.print-mode-color .score-fail::before,
+  body.print-mode-color .status-danger::before,
+  body.print-mode-color .status-warning::before,
+  body.print-mode-color .status-info::before,
+  body.print-mode-color .place-chip-budget::before,
+  body.print-mode-color .place-chip-contract::before,
+  body.print-mode-color .place-chip-unknown::before{
+    content:none!important
+  }
+
+  body.print-mode-color tfoot td{
+    background:#eef2f6!important;
+    color:#172033!important;
+    border:0!important;
+    border-top:2px solid #9daaba!important;
+    padding-top:1.1mm!important
+  }
+
+  body.print-mode-color .group-row td{
+    background:#e8edf4!important;
+    border-top:2px solid #c8d1de!important;
+    border-bottom:1px solid #c8d1de!important
+  }
+
+  body.print-mode-color .duplicate-group-row td{
+    background:#e6edf5!important;
+    border-top:2px solid #8295aa!important;
+    border-bottom:1px solid #b7c3d0!important
+  }
+
+  body.print-mode-color .duplicate-child-row td:first-child{
+    border-left:3px solid #a9b9ca!important
+  }
+
+  body.print-mode-color .case-code-chip{
+    display:inline-flex!important;
+    align-items:center!important;
+    padding:2px 7px!important;
+    border-radius:5px!important;
+    background:#fff!important;
+    border:1px solid #8fa2b6!important;
+    color:#172033!important;
+    text-decoration:none!important
+  }
+
+  body.print-mode-color .section-count-badge{
+    background:transparent!important;
+    color:#687587!important;
+    border:0!important
+  }
+
+  body.print-mode-color .category-group{
+    border:1px solid #d7dee7!important;
+    border-radius:7px!important;
+    background:#fff!important
+  }
+
+  body.print-mode-color .category-group-head{
+    padding:7px 9px!important;
+    background:#eef3f8!important;
+    border:0!important;
+    border-bottom:1px solid #d7dee7!important
+  }
+
+  body.print-mode-color .category-code{
+    display:inline-flex!important;
+    padding:2px 7px!important;
+    margin-right:6px!important;
+    border:0!important;
+    border-radius:5px!important;
+    background:#173f67!important;
+    color:#fff!important
+  }
+
+  body.print-mode-color .category-benefit,
+  body.print-mode-color .category-meta,
+  body.print-mode-color .reference-source,
+  body.print-mode-color .detail-meta{
+    color:#586677!important
+  }
+
+  body.print-mode-color .application-microtable{
+    border:1px solid #d7dee7!important;
+    border-radius:6px!important;
+    background:#fbfcfd!important;
+    border-collapse:separate!important
+  }
+
+  body.print-mode-color .application-microtable th,
+  body.print-mode-color .application-microtable td{
+    border:0!important;
+    border-right:1px solid #e0e5eb!important;
+    border-bottom:1px solid #e0e5eb!important;
+    background:#fbfcfd!important
+  }
+
+  body.print-mode-color .application-microtable th{
+    background:#eef3f8!important;
+    color:#405064!important
+  }
+
+  body.print-mode-color .application-microtable th:last-child,
+  body.print-mode-color .application-microtable td:last-child{
+    border-right:0!important
+  }
+
+  body.print-mode-color .application-microtable tbody tr:last-child td{
+    border-bottom:0!important
+  }
+
+  body.print-mode-color .reference-details{
+    border:1px solid #d7dee7!important;
+    border-radius:7px!important;
+    background:#fff!important
+  }
+
+  body.print-mode-color .reference-details>summary{
+    padding:8px 10px!important;
+    background:#f3f6f9!important;
+    color:#172033!important;
+    border:0!important
+  }
+
+  body.print-mode-color .reference-details[open]>summary{
+    border-bottom:1px solid #d7dee7!important
+  }
+
+  body.print-mode-color .privacy-disclaimer{
+    padding:7px 9px!important;
+    border:0!important;border-left:3px solid #68788c!important;
+    background:#f2f5f8!important;color:#465366!important;
+    font-size:8pt!important
+  }
+
+  body.print-mode-color .category-group-head>*,
+  body.print-mode-color .category-group-info,
+  body.print-mode-color .category-group-info>div,
+  body.print-mode-color .category-benefit,
+  body.print-mode-color .category-meta{
+    background-color:transparent!important
+  }
+
+  /*
+   * Остаточне джерело кольорів — фактичний екранний вигляд перед друком.
+   * Прозорі дочірні елементи залишаються прозорими, а не стають білими.
+   */
+  body.print-mode-color,
+  body.print-mode-color *{
+    color:var(--screen-print-color,inherit)!important;
+    background-color:var(--screen-print-background,transparent)!important;
+    border-top-color:var(--screen-print-border-top,currentColor)!important;
+    border-right-color:var(--screen-print-border-right,currentColor)!important;
+    border-bottom-color:var(--screen-print-border-bottom,currentColor)!important;
+    border-left-color:var(--screen-print-border-left,currentColor)!important;
+    text-decoration-color:var(--screen-print-decoration,currentColor)!important
+  }
+}
+</style>
+</head>
+<body>
+<main>
+  <section class="print-report-header print-only">
+    <div class="print-report-title">Звіт зі статистики вступників</div>
+    <div class="print-report-meta">
+      <strong>Факультет:</strong><span id="printFaculty"></span>
+      <strong>Файл:</strong><span id="printSourceFile"></span>
+      <strong>Сформовано:</strong><span id="printGeneratedAt"></span>
+      <strong>Вигляд:</strong><span id="printModeLabel"></span>
+    </div>
+    <div class="print-mono-legend">
+      Чорно-білі позначення:
+      <strong>✓</strong> — позитивне значення, бюджет або бал від 130;
+      <strong>×</strong> — негативне значення, скасування або бал нижче 130;
+      <strong>?</strong> — значення не визначено.
+    </div>
+    <div class="privacy-disclaimer">
+      <strong>Захист персональних даних.</strong> Файл і всі персональні дані обробляються локально у вашому браузері та нікуди не завантажуються і не надсилаються. Відповідальність за законність обробки, обмеження доступу, зберігання, друк, передавання та захист персональних даних і сформованих файлів несе користувач.
+    </div>
+  </section>
+
+  <h1 class="screen-only">Статистика вступників за спеціальностями</h1>
+
+  <section class="panel screen-only">
+    <div class="controls">
+      <label>CSV-файл
+        <input id="file" type="file" accept=".csv,text/csv">
+      </label>
+      <label>Кодування
+        <select id="encoding">
+          <option value="auto">Автовизначення</option>
+          <option value="windows-1251">Windows-1251</option>
+          <option value="utf-8">UTF-8</option>
+        </select>
+      </label>
+      <label>Факультет
+        <select id="faculty" disabled>
+          <option>Спочатку завантажте файл</option>
+        </select>
+      </label>
+      <label>Вигляд документа
+        <select id="printMode">
+          <option value="mono">Для чорно-білого принтера</option>
+          <option value="color">Кольоровий звіт — як на екрані</option>
+        </select>
+      </label>
+      <button id="printPdf" type="button" disabled>Сформувати PDF</button>
+      <button id="collapseAllTables" type="button" disabled>Згорнути всі таблиці</button>
+      <button id="expandAllTables" type="button" disabled>Відкрити всі таблиці</button>
+      <span class="pdf-hint">У вікні друку оберіть «Зберегти як PDF»</span>
+    </div>
+    <div id="status" class="status muted"></div>
+    <div class="privacy-disclaimer">
+      <strong>Захист персональних даних.</strong> Файл і всі персональні дані обробляються локально у вашому браузері та нікуди не завантажуються і не надсилаються. Відповідальність за законність обробки, обмеження доступу, зберігання, друк, передавання та захист персональних даних і сформованих файлів несе користувач.
+    </div>
+  </section>
+
+  <section id="singleTablePrintArea" aria-hidden="true"></section>
+
+  <section id="result" hidden>
+    <section class="panel">
+      <div class="stats">
+        <div class="card"><span>Спеціальностей</span><b id="sSpecialties">0</b></div>
+        <div class="card"><span>Вступників*</span><b id="sPersons">0</b></div>
+        <div class="card"><span>Чинних заяв</span><b id="sApps">0</b></div>
+        <div class="card"><span>Дубльованих шифрів</span><b id="sDuplicateCodes">0</b></div>
+      </div>
+      <div class="note">
+        * Сума унікальних «Ід персони» окремо по спеціальностях. Одна людина на двох
+        спеціальностях враховується в обох.
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Показники по спеціальностях</h2>
+      <div class="toolbar">
+        <button id="exportSummary">Експорт підсумку CSV</button>
+        <button id="resetSummarySort" class="reset-sort-btn" type="button">Скинути сортування</button>
+      </div>
+      <div class="table-wrap">
+        <table id="summaryTable">
+          <thead>
+            <tr>
+              <th>Спеціальність</th>
+              <th class="center">Поріг бала</th>
+              <th class="num">Вступників</th>
+              <th class="num">Бал ≥ порогу</th>
+              <th class="num">Бал &lt; порогу</th>
+              <th class="num">Проходять на бюджет<br>(бал ≥ 130)</th>
+              <th class="num">Тільки контракт<br>(бал &lt; 130)</th>
+              <th class="num">Претендують на бюджет,<br>але бал &lt; 130</th>
+              <th class="num">З коледжу</th>
+              <th class="num">Чинних заяв</th>
+              <th class="num">Скасовано<br>вступником</th>
+              <th class="num">Скасовано<br>(втрата пріор.)</th>
+              <th class="num">Дубльованих шифрів</th>
+            </tr>
+          </thead>
+          <tbody id="summaryBody"></tbody>
+          <tfoot id="summaryFoot"></tfoot>
+        </table>
+      </div>
+      <div class="note">
+        Клікніть на будь-яке число, щоб відкрити ПІБ, заяви, статуси та дати подання.
+        Для кожної спеціальності поріг задається окремо; початкове значення — 145.
+        Бюджетна межа фіксована: 130 балів. Окремо позначаються вступники,
+        які претендують на бюджет, але мають менше 130 балів.
+      </div>
+    </section>
+
+
+    <section class="panel">
+      <h2 id="priorityChartTitle">Пріоритети заяв за спеціальностями</h2>
+      <div id="priorityChart" class="priority-chart-list" aria-label="Діаграми пріоритетів за спеціальностями"></div>
+      <div class="note">
+        Для кожної спеціальності окремо показано кількість чинних заяв і
+        унікальних вступників за пріоритетами 1–10. У дужках: Б — вступники,
+        які претендують на бюджет; К — вступники, які претендують на контракт
+        і не претендують на бюджет. Категорії Б і К взаємовиключні.
+        Висота стовпця відповідає кількості унікальних вступників.
+      </div>
+    </section>
+
+    <section id="priorityDetailPanel" class="panel" hidden>
+      <div class="detail-head">
+        <div>
+          <div id="priorityDetailTitle" class="detail-title"></div>
+          <div id="priorityDetailMeta" class="detail-meta"></div>
+        </div>
+        <button id="closePriorityDetail" class="close-btn">Закрити</button>
+      </div>
+      <div class="toolbar">
+        <button id="exportPriorityDetail">Експорт списку CSV</button>
+        <button id="resetPrioritySort" class="reset-sort-btn" type="button">Скинути сортування</button>
+      </div>
+      <div class="table-wrap">
+        <table id="priorityDetailTable" class="priority-table">
+          <thead>
+            <tr>
+              <th class="num">№</th>
+              <th>Вступник</th>
+              <th>Ід персони</th>
+              <th class="num">Конкурсний бал</th>
+              <th>Претендує на бюджет</th>
+              <th>Претендує на контракт</th>
+              <th>Шифр справи</th>
+              <th>Ід заявки</th>
+              <th>Статус заявки</th>
+              <th>Контактний номер</th>
+              <th>Електронна адреса</th>
+              <th>Дата подання</th>
+            </tr>
+          </thead>
+          <tbody id="priorityDetailBody"></tbody>
+          <tfoot id="priorityDetailFoot"></tfoot>
+        </table>
+      </div>
+      <div id="priorityDetailEmpty" class="empty" hidden>Немає вступників.</div>
+    </section>
+
+    <section id="detailPanel" class="panel" hidden>
+      <div class="detail-head">
+        <div>
+          <div id="detailTitle" class="detail-title"></div>
+          <div id="detailMeta" class="detail-meta"></div>
+        </div>
+        <button id="closeDetail" class="close-btn">Закрити</button>
+      </div>
+      <div class="toolbar">
+        <button id="exportDetail">Експорт списку CSV</button>
+        <button id="resetDetailSort" class="reset-sort-btn" type="button">Скинути сортування</button>
+      </div>
+      <div class="table-wrap">
+        <table id="detailTable">
+          <thead>
+            <tr>
+              <th>Вступник</th>
+              <th>Контактний номер</th>
+              <th>Електронна адреса</th>
+              <th>Ід персони</th>
+              <th>Ід заявки</th>
+              <th>Статус заявки</th>
+              <th>Претендує на бюджет</th>
+              <th>Претендує на контракт</th>
+              <th class="num">Бал заяви</th>
+              <th>Шифр справи</th>
+              <th>Дата подання</th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+          <tfoot id="detailFoot"></tfoot>
+        </table>
+      </div>
+      <div id="detailEmpty" class="empty" hidden>Немає записів.</div>
+    </section>
+
+
+    <section id="categoryApplicantsPanel" class="panel">
+      <div class="section-title-row">
+        <div class="section-title-main">
+          <h2>Вступники за кодами пільгових категорій</h2>
+          <span
+            id="categoryUniqueApplicantsCount"
+            class="section-count-badge"
+          >Унікальних вступників: 0</span>
+        </div>
+        <div class="report-table-actions screen-only">
+          <button
+            id="toggleCategoryApplicants"
+            type="button"
+            class="section-toggle-btn"
+            data-section-toggle="categoryApplicantsContent"
+            aria-expanded="false"
+          >Відкрити розділ</button>
+        </div>
+      </div>
+
+      <div
+        id="categoryApplicantsContent"
+        class="collapsible-section-content"
+        hidden
+      >
+        <div class="note">
+          Коди беруться з колонки «Пільгові категорії». Одна особа може входити
+          до кількох категорій. Для кожної її заяви окремо показано спеціальність,
+          конкурсний бал, бюджет або контракт і шифр особової справи.
+        </div>
+        <div id="categoryGroups" class="category-groups"></div>
+        <div id="categoryGroupsEmpty" class="empty">
+          У колонці «Пільгові категорії» не знайдено кодів.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <details id="categoryReference" class="reference-details">
+        <summary>Довідник пільгових категорій 2026</summary>
+        <div class="reference-source">
+          Пояснення за матеріалом Education.ua від 14 січня 2026 року,
+          оновленим 16 липня 2026 року.
+        </div>
+        <div class="table-wrap">
+          <table id="categoryReferenceTable">
+            <thead>
+              <tr>
+                <th>Код</th>
+                <th>Пільгова категорія</th>
+                <th>Вид пільги</th>
+              </tr>
+            </thead>
+            <tbody id="categoryReferenceBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section id="duplicatesPanel" class="panel">
+      <h2>Дублікати «Номер (шифр) особової справи»</h2>
+      <div class="toolbar">
+        <button id="exportDuplicates">Експорт дублікатів CSV</button>
+        <button id="resetDuplicatesSort" class="reset-sort-btn" type="button">Скинути сортування</button>
+      </div>
+      <div class="table-wrap">
+        <table id="duplicatesTable">
+          <thead>
+            <tr>
+              <th>Спеціальність</th>
+              <th>Шифр справи</th>
+              <th>Ід заявки</th>
+              <th>Ід персони</th>
+              <th>Вступник</th>
+              <th>Статус заявки</th>
+              <th>Претендує на бюджет</th>
+              <th>Претендує на контракт</th>
+              <th class="num">Конкурсний бал</th>
+              <th>Дата подання</th>
+            </tr>
+          </thead>
+          <tbody id="duplicatesBody"></tbody>
+          <tfoot id="duplicatesFoot"></tfoot>
+        </table>
+      </div>
+      <div id="duplicatesEmpty" class="empty" hidden>
+        Дублікатів у вибраному факультеті немає.
+      </div>
+    </section>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+const $ = id => document.getElementById(id);
+const fileEl = $('file');
+const encodingEl = $('encoding');
+const facultyEl = $('faculty');
+const statusEl = $('status');
+const resultEl = $('result');
+const detailPanel = $('detailPanel');
+const priorityDetailPanel = $('priorityDetailPanel');
+const printPdfEl = $('printPdf');
+const printModeEl = $('printMode');
+const printModeLabelEl = $('printModeLabel');
+const collapseAllTablesEl = $('collapseAllTables');
+const expandAllTablesEl = $('expandAllTables');
+const singleTablePrintAreaEl = $('singleTablePrintArea');
+const printFacultyEl = $('printFaculty');
+const printSourceFileEl = $('printSourceFile');
+const printGeneratedAtEl = $('printGeneratedAt');
+
+let ready = false;
+let summaryRequestNo = 0;
+let detailRequestNo = 0;
+let priorityDetailRequestNo = 0;
+let currentSummary = [];
+let currentDuplicates = [];
+let currentCategories = [];
+let currentDetail = [];
+let currentDetailInfo = null;
+let currentPriorityDetail = [];
+let currentPriorityApplications = 0;
+let currentPriority = null;
+let currentPrioritySpecialty = '';
+let currentTotals = {
+  specialties: 0,
+  persons: 0,
+  apps: 0,
+  duplicateCodes: 0
+};
+
+const summarySort = { key: null, dir: 1 };
+const prioritySort = { key: null, dir: 1 };
+const detailSort = { key: null, dir: 1 };
+const duplicatesSort = { key: null, dir: 1 };
+
+const thresholdsByFaculty = new Map();
+
+const workerSource = String.raw`
+'use strict';
+
+let faculties = new Map();
+let loadMeta = null;
+
+const REQUIRED = [
+  'Ід заявки',
+  'Ід персони',
+  'Структурний підрозділ',
+  'Спеціальність',
+  'Вступник',
+  'Контактний номер',
+  'Електронна адреса',
+  'Статус заявки',
+  'Номер (шифр) особової справи',
+  'Конкурсний бал',
+  'Пріоритет',
+  'Претендує на бюджет',
+  'Претендує на контракт',
+  'Час додання заяви до ЄДЕБО'
+];
+
+const APP_ID = 0;
+const PERSON_ID = 1;
+const PERSON_NAME = 2;
+const STATUS = 3;
+const SCORE = 4;
+const CASE_CODE = 5;
+const DATE_MS = 6;
+const DATE_TEXT = 7;
+const PERSON_KEY = 8;
+const COLLEGE = 9;
+const PHONE = 10;
+const EMAIL = 11;
+const CLAIMS_BUDGET = 12;
+const PRIORITY = 13;
+const CLAIMS_CONTRACT = 14;
+const CATEGORY_CODES = 15;
+
+function clean(v) {
+  return (v == null ? '' : String(v)).replace(/\uFEFF/g, '').trim();
+}
+
+function parseScore(v) {
+  const s = clean(v).replace(/\u00A0/g, '').replace(/\s/g, '').replace(',', '.');
+  if (!s) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseBoolean(v) {
+  const s = clean(v).toLocaleLowerCase('uk-UA');
+  if (!s) return null;
+  if (s === 'так' || s === 'true' || s === '1' || s === 'yes' || s === '+') {
+    return true;
+  }
+  if (s === 'ні' || s === 'false' || s === '0' || s === 'no' || s === '-') {
+    return false;
+  }
+  return null;
+}
+
+function parsePriority(v) {
+  const n = Number(clean(v).replace(',', '.'));
+  if (!Number.isInteger(n) || n < 1 || n > 10) return null;
+  return n;
+}
+
+function parseCategoryCodes(v) {
+  const matches = clean(v).match(/\d{3,4}/g) || [];
+  return [...new Set(matches)];
+}
+
+function parseDate(v) {
+  const text = clean(v);
+  if (!text) return [null, ''];
+
+  let m = text.match(
+    /^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (m) {
+    const ms = new Date(
+      Number(m[3]), Number(m[2]) - 1, Number(m[1]),
+      Number(m[4] || 0), Number(m[5] || 0), Number(m[6] || 0)
+    ).getTime();
+    return [Number.isFinite(ms) ? ms : null, text];
+  }
+
+  m = text.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
+  );
+  if (m) {
+    const ms = new Date(
+      Number(m[1]), Number(m[2]) - 1, Number(m[3]),
+      Number(m[4] || 0), Number(m[5] || 0), Number(m[6] || 0)
+    ).getTime();
+    return [Number.isFinite(ms) ? ms : null, text];
+  }
+
+  const parsed = Date.parse(text);
+  return [Number.isFinite(parsed) ? parsed : null, text];
+}
+
+function compareDateDesc(a, b) {
+  const av = a.dateMs == null ? -Infinity : a.dateMs;
+  const bv = b.dateMs == null ? -Infinity : b.dateMs;
+  return bv - av || String(a.personName).localeCompare(String(b.personName), 'uk');
+}
+
+function getBucket(faculty, specialty) {
+  let f = faculties.get(faculty);
+  if (!f) faculties.set(faculty, f = new Map());
+
+  let b = f.get(specialty);
+  if (!b) {
+    b = {
+      apps: [],
+      cancelledByApplicant: [],
+      cancelledPriority: [],
+      persons: new Map(),
+      cases: new Map()
+    };
+    f.set(specialty, b);
+  }
+  return b;
+}
+
+function addCase(bucket, code, appIndex) {
+  if (!code) return;
+  const list = bucket.cases.get(code);
+  if (list) list.push(appIndex);
+  else bucket.cases.set(code, [appIndex]);
+}
+
+function processRecord(row, idx, meta) {
+  meta.totalRows++;
+
+  const faculty = clean(row[idx.faculty]) || '(Не вказано факультет)';
+  const specialty = clean(row[idx.specialty]) || '(Не вказано спеціальність)';
+  const appId = clean(row[idx.appId]);
+  const personId = clean(row[idx.personId]);
+  const personName = clean(row[idx.personName]);
+  const phone = clean(row[idx.phone]);
+  const email = clean(row[idx.email]);
+  const statusText = clean(row[idx.status]);
+  const normalizedStatus = statusText.toLocaleLowerCase('uk-UA');
+  const caseCode = clean(row[idx.caseCode]);
+  const score = parseScore(row[idx.score]);
+  const priority = parsePriority(row[idx.priority]);
+  const claimsBudget = parseBoolean(row[idx.claimsBudget]);
+  const claimsContract = parseBoolean(row[idx.claimsContract]);
+  const categoryCodes =
+    idx.categoryCodes == null ? [] : parseCategoryCodes(row[idx.categoryCodes]);
+  const date = parseDate(row[idx.submittedAt]);
+  const personKey = personId || (appId ? '@app:' + appId : '@row:' + meta.totalRows);
+  const college = /ВП[1-9]$/iu.test(caseCode);
+
+  const app = [
+    appId,
+    personId,
+    personName,
+    statusText,
+    score,
+    caseCode,
+    date[0],
+    date[1],
+    personKey,
+    college,
+    phone,
+    email,
+    claimsBudget,
+    priority,
+    claimsContract,
+    categoryCodes
+  ];
+
+  const bucket = getBucket(faculty, specialty);
+
+  if (normalizedStatus === 'скасовано вступником') {
+    bucket.cancelledByApplicant.push(app);
+    meta.cancelledByApplicant++;
+    meta.cancelled++;
+    return;
+  }
+
+  if (normalizedStatus === 'скасовано (втрата пріор.)') {
+    bucket.cancelledPriority.push(app);
+    meta.cancelledPriority++;
+    meta.cancelled++;
+    return;
+  }
+
+  const appIndex = bucket.apps.length;
+  bucket.apps.push(app);
+
+  let person = bucket.persons.get(personKey);
+  if (!person) {
+    person = {
+      personId,
+      personName,
+      phone,
+      email,
+      maxScore: score,
+      college,
+      claimsBudget,
+      appIndexes: [appIndex]
+    };
+    bucket.persons.set(personKey, person);
+  } else {
+    if (!person.personName && personName) person.personName = personName;
+    if (!person.personId && personId) person.personId = personId;
+    if (!person.phone && phone) person.phone = phone;
+    if (!person.email && email) person.email = email;
+    if (person.claimsBudget == null && claimsBudget != null) {
+      person.claimsBudget = claimsBudget;
+    }
+    if (claimsBudget === true) person.claimsBudget = true;
+    if (score !== null && (person.maxScore === null || score > person.maxScore)) {
+      person.maxScore = score;
+    }
+    if (college) person.college = true;
+    person.appIndexes.push(appIndex);
+  }
+
+  addCase(bucket, caseCode, appIndex);
+  meta.validRows++;
+}
+
+function buildIndexes(header) {
+  const map = new Map(header.map((v, i) => [clean(v), i]));
+  const missing = REQUIRED.filter(x => !map.has(x));
+  if (missing.length) {
+    throw new Error('У CSV відсутні колонки: ' + missing.join(', '));
+  }
+
+  const categoryAliases = [
+    'Пільгові категорії',
+    'Код категорії особи',
+    'Коди категорій особи',
+    'Код категорії',
+    'Коди категорій',
+    'Категорія особи'
+  ];
+  const categoryCodes = categoryAliases
+    .map(name => map.get(name))
+    .find(index => index != null);
+
+  return {
+    appId: map.get('Ід заявки'),
+    personId: map.get('Ід персони'),
+    faculty: map.get('Структурний підрозділ'),
+    specialty: map.get('Спеціальність'),
+    personName: map.get('Вступник'),
+    phone: map.get('Контактний номер'),
+    email: map.get('Електронна адреса'),
+    status: map.get('Статус заявки'),
+    caseCode: map.get('Номер (шифр) особової справи'),
+    score: map.get('Конкурсний бал'),
+    priority: map.get('Пріоритет'),
+    claimsBudget: map.get('Претендує на бюджет'),
+    claimsContract: map.get('Претендує на контракт'),
+    categoryCodes,
+    submittedAt: map.get('Час додання заяви до ЄДЕБО')
+  };
+}
+
+class CsvParser {
+  constructor(onRow) {
+    this.onRow = onRow;
+    this.row = [];
+    this.field = '';
+    this.inQuotes = false;
+    this.quotePending = false;
+    this.skipLF = false;
+  }
+
+  endField() {
+    this.row.push(this.field);
+    this.field = '';
+  }
+
+  endRow(isCR) {
+    this.endField();
+    this.onRow(this.row);
+    this.row = [];
+    if (isCR) this.skipLF = true;
+  }
+
+  push(text, final = false) {
+    for (let i = 0; i < text.length; i++) {
+      const c = text.charCodeAt(i);
+
+      if (this.skipLF) {
+        this.skipLF = false;
+        if (c === 10) continue;
+      }
+
+      if (this.inQuotes) {
+        if (this.quotePending) {
+          if (c === 34) {
+            this.field += '"';
+            this.quotePending = false;
+            continue;
+          }
+
+          this.inQuotes = false;
+          this.quotePending = false;
+
+          if (c === 59) {
+            this.endField();
+            continue;
+          }
+          if (c === 13 || c === 10) {
+            this.endRow(c === 13);
+            continue;
+          }
+          if (c === 32 || c === 9) continue;
+
+          this.field += text[i];
+          continue;
+        }
+
+        if (c === 34) this.quotePending = true;
+        else this.field += text[i];
+        continue;
+      }
+
+      if (c === 34 && this.field.length === 0) {
+        this.inQuotes = true;
+        continue;
+      }
+      if (c === 59) {
+        this.endField();
+        continue;
+      }
+      if (c === 13 || c === 10) {
+        this.endRow(c === 13);
+        continue;
+      }
+
+      this.field += text[i];
+    }
+
+    if (final) {
+      if (this.quotePending) {
+        this.quotePending = false;
+        this.inQuotes = false;
+      }
+      if (this.field.length || this.row.length) this.endRow(false);
+    }
+  }
+}
+
+async function detectEncoding(file, requested) {
+  if (requested !== 'auto') return requested;
+
+  const sample = await file.slice(0, Math.min(file.size, 262144)).arrayBuffer();
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(sample);
+    return 'utf-8';
+  } catch {
+    return 'windows-1251';
+  }
+}
+
+async function loadFile(file, requestedEncoding) {
+  faculties = new Map();
+
+  const encoding = await detectEncoding(file, requestedEncoding);
+  const decoder = new TextDecoder(encoding);
+  const meta = {
+    totalRows: 0,
+    validRows: 0,
+    cancelled: 0,
+    cancelledByApplicant: 0,
+    cancelledPriority: 0,
+    encoding
+  };
+
+  let header = null;
+  let idx = null;
+  let lastProgress = 0;
+
+  const parser = new CsvParser(row => {
+    if (!header) {
+      header = row;
+
+      if (header.length === 1 && /^sep=;$/i.test(clean(header[0]))) {
+        header = null;
+        return;
+      }
+
+      idx = buildIndexes(header);
+      return;
+    }
+
+    if (row.length === 1 && !clean(row[0])) return;
+    processRecord(row, idx, meta);
+
+    if (meta.totalRows - lastProgress >= 25000) {
+      lastProgress = meta.totalRows;
+      postMessage({ type: 'progress', rows: meta.totalRows });
+    }
+  });
+
+  if (file.stream) {
+    const reader = file.stream().getReader();
+
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      parser.push(decoder.decode(part.value, { stream: true }));
+    }
+
+    parser.push(decoder.decode(), true);
+  } else {
+    const buf = await file.arrayBuffer();
+    parser.push(decoder.decode(buf), true);
+  }
+
+  if (!header) throw new Error('CSV порожній або не містить заголовка.');
+
+  loadMeta = meta;
+
+  return {
+    faculties: [...faculties.keys()].sort((a, b) => a.localeCompare(b, 'uk')),
+    meta
+  };
+}
+
+function normalizeThreshold(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 145;
+  return Math.max(101, Math.min(199, Math.round(n)));
+}
+
+function getDuplicateIndexes(bucket) {
+  const indexes = [];
+  let duplicateCodes = 0;
+
+  for (const list of bucket.cases.values()) {
+    if (list.length < 2) continue;
+    duplicateCodes++;
+    for (const index of list) indexes.push(index);
+  }
+
+  return { duplicateCodes, indexes };
+}
+
+function makePublicRecord(app) {
+  return {
+    personName: app[PERSON_NAME],
+    phone: app[PHONE],
+    email: app[EMAIL],
+    personId: app[PERSON_ID],
+    appId: app[APP_ID],
+    status: app[STATUS],
+    appScore: app[SCORE],
+    caseCode: app[CASE_CODE],
+    claimsBudget: app[CLAIMS_BUDGET],
+    claimsContract: app[CLAIMS_CONTRACT],
+    dateMs: app[DATE_MS],
+    dateText: app[DATE_TEXT]
+  };
+}
+
+function makePublicApp(bucket, appIndex) {
+  return makePublicRecord(bucket.apps[appIndex]);
+}
+
+function summarize(faculty, thresholds) {
+  const f = faculties.get(faculty);
+  if (!f) return { summary: [], duplicates: [], totals: {} };
+
+  const summary = [];
+  const duplicates = [];
+  const categoryMap = new Map();
+  let totalPersons = 0;
+  let totalApps = 0;
+  let totalDuplicateCodes = 0;
+
+  for (const [specialty, bucket] of f) {
+    for (const app of bucket.apps) {
+      for (const code of app[CATEGORY_CODES]) {
+        let group = categoryMap.get(code);
+
+        if (!group) {
+          group = new Map();
+          categoryMap.set(code, group);
+        }
+
+        const personKey = app[PERSON_KEY];
+        let person = group.get(personKey);
+
+        if (!person) {
+          person = {
+            personName: app[PERSON_NAME],
+            personId: app[PERSON_ID],
+            phone: app[PHONE],
+            email: app[EMAIL],
+            applications: new Map()
+          };
+          group.set(personKey, person);
+        } else {
+          if (!person.personName && app[PERSON_NAME]) person.personName = app[PERSON_NAME];
+          if (!person.personId && app[PERSON_ID]) person.personId = app[PERSON_ID];
+          if (!person.phone && app[PHONE]) person.phone = app[PHONE];
+          if (!person.email && app[EMAIL]) person.email = app[EMAIL];
+        }
+
+        const applicationKey =
+          app[APP_ID] ||
+          [
+            specialty,
+            app[CASE_CODE],
+            app[DATE_MS],
+            app[SCORE]
+          ].join('\u0000');
+
+        if (!person.applications.has(applicationKey)) {
+          person.applications.set(applicationKey, {
+            specialty,
+            score: app[SCORE],
+            claimsBudget: app[CLAIMS_BUDGET] === true,
+            claimsContract:
+              app[CLAIMS_BUDGET] !== true &&
+              app[CLAIMS_CONTRACT] === true,
+            caseCode: app[CASE_CODE],
+            appId: app[APP_ID],
+            dateMs: app[DATE_MS]
+          });
+        }
+      }
+    }
+
+    const priorityPersons = Array.from({ length: 10 }, () => new Map());
+    const priorityApplications = Array.from({ length: 10 }, () => 0);
+
+    for (const app of bucket.apps) {
+      const priority = app[PRIORITY];
+      if (priority === null) continue;
+
+      priorityApplications[priority - 1]++;
+      const people = priorityPersons[priority - 1];
+      const key = app[PERSON_KEY];
+      let flags = people.get(key);
+
+      if (!flags) {
+        flags = { budget: false, contract: false };
+        people.set(key, flags);
+      }
+
+      if (app[CLAIMS_BUDGET]) flags.budget = true;
+      if (app[CLAIMS_CONTRACT]) flags.contract = true;
+    }
+
+    const threshold = normalizeThreshold(thresholds && thresholds[specialty]);
+    let above = 0;
+    let below = 0;
+    let budget = 0;
+    let contractOnly = 0;
+    let claimsBudgetBelow130 = 0;
+    let college = 0;
+
+    for (const person of bucket.persons.values()) {
+      if (person.maxScore !== null) {
+        if (person.maxScore >= threshold) above++;
+        else below++;
+
+        if (person.maxScore >= 130) budget++;
+        else {
+          contractOnly++;
+          if (person.claimsBudget) claimsBudgetBelow130++;
+        }
+      }
+
+      if (person.college) college++;
+    }
+
+    const duplicateInfo = getDuplicateIndexes(bucket);
+
+    for (const appIndex of duplicateInfo.indexes) {
+      const app = bucket.apps[appIndex];
+      duplicates.push({
+        specialty,
+        caseCode: app[CASE_CODE],
+        appId: app[APP_ID],
+        personId: app[PERSON_ID],
+        personName: app[PERSON_NAME],
+        status: app[STATUS],
+        claimsBudget: app[CLAIMS_BUDGET],
+        claimsContract: app[CLAIMS_CONTRACT],
+        score: app[SCORE],
+        dateMs: app[DATE_MS],
+        dateText: app[DATE_TEXT]
+      });
+    }
+
+    const persons = bucket.persons.size;
+
+    summary.push({
+      specialty,
+      threshold,
+      persons,
+      above,
+      below,
+      budget,
+      contractOnly,
+      claimsBudgetBelow130,
+      college,
+      apps: bucket.apps.length,
+      cancelledByApplicant: bucket.cancelledByApplicant.length,
+      cancelledPriority: bucket.cancelledPriority.length,
+      duplicateCodes: duplicateInfo.duplicateCodes,
+      priorities: priorityPersons.map((people, index) => {
+        let budget = 0;
+        let contract = 0;
+
+        for (const flags of people.values()) {
+          if (flags.budget) {
+            budget++;
+          } else if (flags.contract) {
+            contract++;
+          }
+        }
+
+        return {
+          priority: index + 1,
+          applications: priorityApplications[index],
+          applicants: people.size,
+          budget,
+          contract
+        };
+      })
+    });
+
+    totalPersons += persons;
+    totalApps += bucket.apps.length;
+    totalDuplicateCodes += duplicateInfo.duplicateCodes;
+  }
+
+  summary.sort((a, b) => a.specialty.localeCompare(b.specialty, 'uk'));
+  duplicates.sort(
+    (a, b) =>
+      a.specialty.localeCompare(b.specialty, 'uk') ||
+      a.caseCode.localeCompare(b.caseCode, 'uk') ||
+      compareDateDesc(a, b)
+  );
+
+  const categories = [...categoryMap.entries()]
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .map(([code, persons]) => ({
+      code,
+      applicants: [...persons.values()]
+        .map(person => {
+          const applications = [...person.applications.values()]
+            .sort((a, b) => {
+              const specialtyCompare = String(a.specialty).localeCompare(
+                String(b.specialty),
+                'uk',
+                { numeric: true, sensitivity: 'base' }
+              );
+
+              if (specialtyCompare) return specialtyCompare;
+
+              const av = a.score == null ? -Infinity : a.score;
+              const bv = b.score == null ? -Infinity : b.score;
+
+              return bv - av ||
+                String(a.caseCode).localeCompare(String(b.caseCode), 'uk');
+            });
+
+          const maxScore = applications.reduce(
+            (max, application) =>
+              application.score !== null &&
+              (max === null || application.score > max)
+                ? application.score
+                : max,
+            null
+          );
+
+          return {
+            personName: person.personName,
+            personId: person.personId,
+            phone: person.phone,
+            email: person.email,
+            maxScore,
+            applications
+          };
+        })
+        .sort((a, b) => {
+          const av = a.maxScore == null ? -Infinity : a.maxScore;
+          const bv = b.maxScore == null ? -Infinity : b.maxScore;
+          return bv - av ||
+            String(a.personName).localeCompare(String(b.personName), 'uk');
+        })
+    }));
+
+  return {
+    summary,
+    duplicates,
+    categories,
+    totals: {
+      specialties: summary.length,
+      persons: totalPersons,
+      apps: totalApps,
+      duplicateCodes: totalDuplicateCodes
+    }
+  };
+}
+
+function detail(faculty, specialty, kind, threshold) {
+  const f = faculties.get(faculty);
+  const bucket = f && f.get(specialty);
+
+  if (!bucket) {
+    return { rows: [], persons: 0, apps: 0 };
+  }
+
+  threshold = normalizeThreshold(threshold);
+
+  if (kind === 'cancelledByApplicant' || kind === 'cancelledPriority') {
+    const source =
+      kind === 'cancelledByApplicant'
+        ? bucket.cancelledByApplicant
+        : bucket.cancelledPriority;
+
+    const rows = source.map(makePublicRecord);
+    const persons = new Set(source.map(app => app[PERSON_KEY])).size;
+    rows.sort(compareDateDesc);
+
+    return {
+      rows,
+      persons,
+      apps: rows.length
+    };
+  }
+
+  const selectedPersonKeys = new Set();
+  const selectedAppIndexes = new Set();
+
+  if (kind === 'apps') {
+    for (let i = 0; i < bucket.apps.length; i++) selectedAppIndexes.add(i);
+  } else if (kind === 'duplicates') {
+    const duplicateInfo = getDuplicateIndexes(bucket);
+    for (const index of duplicateInfo.indexes) selectedAppIndexes.add(index);
+  } else {
+    for (const [personKey, person] of bucket.persons) {
+      let include = false;
+
+      if (kind === 'persons') include = true;
+      else if (kind === 'above') {
+        include = person.maxScore !== null && person.maxScore >= threshold;
+      } else if (kind === 'below') {
+        include = person.maxScore !== null && person.maxScore < threshold;
+      } else if (kind === 'budget') {
+        include = person.maxScore !== null && person.maxScore >= 130;
+      } else if (kind === 'contractOnly') {
+        include = person.maxScore !== null && person.maxScore < 130;
+      } else if (kind === 'claimsBudgetBelow130') {
+        include =
+          person.maxScore !== null &&
+          person.maxScore < 130 &&
+          person.claimsBudget;
+      } else if (kind === 'college') {
+        include = person.college;
+      }
+
+      if (include) {
+        selectedPersonKeys.add(personKey);
+        for (const index of person.appIndexes) selectedAppIndexes.add(index);
+      }
+    }
+  }
+
+  if (kind === 'apps' || kind === 'duplicates') {
+    for (const index of selectedAppIndexes) {
+      const app = bucket.apps[index];
+      selectedPersonKeys.add(app[PERSON_KEY]);
+    }
+  }
+
+  const rows = [];
+
+  for (const index of selectedAppIndexes) {
+    const app = bucket.apps[index];
+    const person = bucket.persons.get(app[PERSON_KEY]);
+    rows.push(makePublicApp(bucket, index));
+  }
+
+  rows.sort(compareDateDesc);
+
+  return {
+    rows,
+    persons: selectedPersonKeys.size,
+    apps: rows.length
+  };
+}
+
+function priorityDetail(faculty, specialty, priority) {
+  const f = faculties.get(faculty);
+  const bucket = f && f.get(specialty);
+  priority = Number(priority);
+
+  if (
+    !bucket ||
+    !Number.isInteger(priority) ||
+    priority < 1 ||
+    priority > 10
+  ) {
+    return { rows: [] };
+  }
+
+  const persons = new Map();
+  let applications = 0;
+
+  for (const app of bucket.apps) {
+    if (app[PRIORITY] !== priority) continue;
+    applications++;
+
+    const key = app[PERSON_KEY];
+    let person = persons.get(key);
+
+    if (!person) {
+      person = {
+        personName: app[PERSON_NAME],
+        personId: app[PERSON_ID],
+        phone: app[PHONE],
+        email: app[EMAIL],
+        score: app[SCORE],
+        claimsBudget: app[CLAIMS_BUDGET],
+        claimsContract: app[CLAIMS_CONTRACT],
+        caseCodes: new Set(),
+        appIds: new Set(),
+        statuses: new Set(),
+        dateMs: app[DATE_MS],
+        dateText: app[DATE_TEXT]
+      };
+      persons.set(key, person);
+    } else {
+      if (!person.personName && app[PERSON_NAME]) person.personName = app[PERSON_NAME];
+      if (!person.personId && app[PERSON_ID]) person.personId = app[PERSON_ID];
+      if (!person.phone && app[PHONE]) person.phone = app[PHONE];
+      if (!person.email && app[EMAIL]) person.email = app[EMAIL];
+      if (person.claimsBudget == null && app[CLAIMS_BUDGET] != null) {
+        person.claimsBudget = app[CLAIMS_BUDGET];
+      }
+      if (person.claimsContract == null && app[CLAIMS_CONTRACT] != null) {
+        person.claimsContract = app[CLAIMS_CONTRACT];
+      }
+      if (app[CLAIMS_BUDGET] === true) person.claimsBudget = true;
+      if (app[CLAIMS_CONTRACT] === true) person.claimsContract = true;
+
+      if (
+        app[SCORE] !== null &&
+        (person.score === null || app[SCORE] > person.score)
+      ) {
+        person.score = app[SCORE];
+      }
+
+      const oldDate = person.dateMs == null ? -Infinity : person.dateMs;
+      const newDate = app[DATE_MS] == null ? -Infinity : app[DATE_MS];
+
+      if (newDate > oldDate) {
+        person.dateMs = app[DATE_MS];
+        person.dateText = app[DATE_TEXT];
+      }
+    }
+
+    if (app[CASE_CODE]) person.caseCodes.add(app[CASE_CODE]);
+    if (app[APP_ID]) person.appIds.add(app[APP_ID]);
+    if (app[STATUS]) person.statuses.add(app[STATUS]);
+  }
+
+  const rows = [...persons.values()].map(person => ({
+    personName: person.personName,
+    personId: person.personId,
+    phone: person.phone,
+    email: person.email,
+    score: person.score,
+    claimsBudget: person.claimsBudget,
+    claimsContract: person.claimsContract,
+    caseCodes: [...person.caseCodes].sort((a, b) => a.localeCompare(b, 'uk')),
+    appIds: [...person.appIds],
+    statuses: [...person.statuses],
+    dateMs: person.dateMs,
+    dateText: person.dateText
+  }));
+
+  rows.sort((a, b) => {
+    const aScore = a.score == null ? -Infinity : a.score;
+    const bScore = b.score == null ? -Infinity : b.score;
+
+    return (
+      bScore - aScore ||
+      String(a.personName).localeCompare(String(b.personName), 'uk')
+    );
+  });
+
+  return { rows, applications };
+}
+
+onmessage = async event => {
+  const m = event.data;
+
+  try {
+    if (m.type === 'load') {
+      const result = await loadFile(m.file, m.encoding);
+      postMessage({ type: 'loaded', ...result });
+      return;
+    }
+
+    if (m.type === 'summarize') {
+      const result = summarize(m.faculty, m.thresholds);
+      postMessage({
+        type: 'summary',
+        requestNo: m.requestNo,
+        ...result
+      });
+      return;
+    }
+
+    if (m.type === 'detail') {
+      const result = detail(
+        m.faculty,
+        m.specialty,
+        m.kind,
+        m.threshold
+      );
+
+      postMessage({
+        type: 'detail',
+        requestNo: m.requestNo,
+        specialty: m.specialty,
+        kind: m.kind,
+        threshold: normalizeThreshold(m.threshold),
+        ...result
+      });
+      return;
+    }
+
+    if (m.type === 'priorityDetail') {
+      const result = priorityDetail(m.faculty, m.specialty, m.priority);
+
+      postMessage({
+        type: 'priorityDetail',
+        requestNo: m.requestNo,
+        faculty: m.faculty,
+        specialty: m.specialty,
+        priority: Number(m.priority),
+        ...result
+      });
+    }
+  } catch (err) {
+    postMessage({
+      type: 'error',
+      message: err && err.message ? err.message : String(err)
+    });
+  }
+};
+`;
+
+const worker = new Worker(
+  URL.createObjectURL(new Blob([workerSource], { type: 'text/javascript' }))
+);
+
+function setStatus(text, cls = 'muted') {
+  statusEl.textContent = text;
+  statusEl.className = 'status ' + cls;
+}
+
+
+
+const capturedColorElements = new Set();
+
+function selectedPrintMode() {
+  return printModeEl.value === 'color' ? 'color' : 'mono';
+}
+
+function selectedPrintModeLabel() {
+  return selectedPrintMode() === 'color'
+    ? 'Кольоровий звіт — як на екрані'
+    : 'Для чорно-білого принтера';
+}
+
+function clearCapturedPrintColors() {
+  for (const element of capturedColorElements) {
+    element.style.removeProperty('--screen-print-color');
+    element.style.removeProperty('--screen-print-background');
+    element.style.removeProperty('--screen-print-border-top');
+    element.style.removeProperty('--screen-print-border-right');
+    element.style.removeProperty('--screen-print-border-bottom');
+    element.style.removeProperty('--screen-print-border-left');
+    element.style.removeProperty('--screen-print-decoration');
+  }
+
+  capturedColorElements.clear();
+}
+
+function captureScreenColorsForPrint() {
+  clearCapturedPrintColors();
+
+  for (const element of document.querySelectorAll('body, body *')) {
+    const style = getComputedStyle(element);
+
+    element.style.setProperty('--screen-print-color', style.color);
+    element.style.setProperty(
+      '--screen-print-background',
+      style.backgroundColor
+    );
+    element.style.setProperty(
+      '--screen-print-border-top',
+      style.borderTopColor
+    );
+    element.style.setProperty(
+      '--screen-print-border-right',
+      style.borderRightColor
+    );
+    element.style.setProperty(
+      '--screen-print-border-bottom',
+      style.borderBottomColor
+    );
+    element.style.setProperty(
+      '--screen-print-border-left',
+      style.borderLeftColor
+    );
+    element.style.setProperty(
+      '--screen-print-decoration',
+      style.textDecorationColor
+    );
+
+    capturedColorElements.add(element);
+  }
+}
+
+function applyPrintMode() {
+  document.body.classList.remove('print-mode-mono', 'print-mode-color');
+
+  if (selectedPrintMode() === 'color') {
+    captureScreenColorsForPrint();
+    document.body.classList.add('print-mode-color');
+  } else {
+    clearCapturedPrintColors();
+    document.body.classList.add('print-mode-mono');
+  }
+
+  if (printModeLabelEl) {
+    printModeLabelEl.textContent = selectedPrintModeLabel();
+  }
+}
+
+
+function ensureElementId(element, prefix) {
+  if (element.id) return element.id;
+
+  let index = 1;
+  let candidate = prefix;
+
+  while (document.getElementById(candidate)) {
+    candidate = `${prefix}-${index++}`;
+  }
+
+  element.id = candidate;
+  return candidate;
+}
+
+function tableTitleForContent(content) {
+  const titleElementId = content.dataset.printTitleElement;
+  if (titleElementId) {
+    const titleElement = $(titleElementId);
+    const title = titleElement ? titleElement.textContent.trim() : '';
+    if (title) return title;
+  }
+
+  return content.dataset.printTitle || 'Таблиця вступної кампанії';
+}
+
+function setTableCollapsed(content, collapsed) {
+  if (!content) return;
+
+  content.hidden = collapsed;
+  const targetId = content.id;
+
+  for (const button of document.querySelectorAll(
+    `[data-table-toggle="${CSS.escape(targetId)}"]`
+  )) {
+    button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    button.textContent = collapsed ? 'Відкрити таблицю' : 'Згорнути таблицю';
+  }
+}
+
+function setSectionCollapsed(content, collapsed) {
+  if (!content) return;
+
+  content.hidden = collapsed;
+  const targetId = content.id;
+
+  for (const button of document.querySelectorAll(
+    `[data-section-toggle="${CSS.escape(targetId)}"]`
+  )) {
+    button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    button.textContent = collapsed ? 'Відкрити розділ' : 'Згорнути розділ';
+  }
+
+  if (!collapsed) {
+    for (const tableContent of content.querySelectorAll(
+      '.collapsible-table-content'
+    )) {
+      setTableCollapsed(tableContent, false);
+    }
+  }
+}
+
+function setAllTablesCollapsed(collapsed) {
+  const categoryContent = $('categoryApplicantsContent');
+  setSectionCollapsed(categoryContent, collapsed);
+
+  for (const content of document.querySelectorAll(
+    '.collapsible-table-content'
+  )) {
+    setTableCollapsed(content, collapsed);
+  }
+
+  const reference = $('categoryReference');
+  if (reference) reference.open = !collapsed;
+}
+
+function createTableActionButtons(content) {
+  const targetId = ensureElementId(content, 'table-content');
+  const actions = document.createElement('div');
+  actions.className = 'report-table-actions screen-only';
+  actions.innerHTML = `
+    <button
+      type="button"
+      class="table-toggle-btn"
+      data-table-toggle="${esc(targetId)}"
+      aria-expanded="${content.hidden ? 'false' : 'true'}"
+    >${content.hidden ? 'Відкрити таблицю' : 'Згорнути таблицю'}</button>
+    <button
+      type="button"
+      class="table-pdf-btn"
+      data-table-pdf="${esc(targetId)}"
+    >PDF таблиці</button>
+  `;
+  return actions;
+}
+
+function installStaticTableControls(
+  tableId,
+  printTitle,
+  printTitleElement = ''
+) {
+  const table = $(tableId);
+  if (!table) return;
+
+  const content = table.closest('.table-wrap');
+  if (!content || content.dataset.tableControlsInstalled === 'true') return;
+
+  content.dataset.tableControlsInstalled = 'true';
+  content.classList.add('collapsible-table-content');
+  content.dataset.printTitle = printTitle;
+
+  if (printTitleElement) {
+    content.dataset.printTitleElement = printTitleElement;
+  }
+
+  const panel = table.closest('.panel');
+  let toolbar = panel ? panel.querySelector(':scope > .toolbar') : null;
+
+  if (!toolbar && tableId === 'categoryReferenceTable') {
+    toolbar = document.createElement('div');
+    toolbar.className = 'toolbar screen-only';
+    const details = $('categoryReference');
+    details.parentNode.insertBefore(toolbar, details);
+  }
+
+  if (!toolbar && panel) {
+    toolbar = document.createElement('div');
+    toolbar.className = 'toolbar screen-only';
+    const tableWrap = table.closest('.table-wrap');
+    panel.insertBefore(toolbar, tableWrap);
+  }
+
+  if (toolbar) {
+    toolbar.appendChild(createTableActionButtons(content));
+  }
+}
+
+function prepareSingleTablePrint(content) {
+  const title = tableTitleForContent(content);
+  const clone = content.cloneNode(true);
+
+  clone.hidden = false;
+  clone.removeAttribute('hidden');
+  clone.classList.remove('collapsible-table-content');
+
+  for (const element of clone.querySelectorAll('[hidden]')) {
+    element.removeAttribute('hidden');
+  }
+
+  for (const element of clone.querySelectorAll(
+    '.screen-only,.toolbar,.copy-code-btn,.sort-indicator'
+  )) {
+    element.remove();
+  }
+
+  singleTablePrintAreaEl.innerHTML = '';
+
+  const heading = document.createElement('div');
+  heading.className = 'single-table-print-title';
+  heading.textContent = title;
+
+  const meta = document.createElement('div');
+  meta.className = 'single-table-print-meta';
+  meta.textContent =
+    `${facultyEl.value || 'Факультет не вибрано'} · ` +
+    `${selectedPrintModeLabel()} · ` +
+    new Intl.DateTimeFormat('uk-UA', {
+      dateStyle: 'long',
+      timeStyle: 'short'
+    }).format(new Date());
+
+  const legend = document.createElement('div');
+  legend.className = 'print-mono-legend';
+  legend.innerHTML =
+    '<strong>✓</strong> — позитивне, бюджет або бал від 130; ' +
+    '<strong>×</strong> — негативне, скасування або бал нижче 130; ' +
+    '<strong>?</strong> — значення не визначено.';
+
+  const privacy = document.createElement('div');
+  privacy.className = 'privacy-disclaimer';
+  privacy.innerHTML =
+    '<strong>Захист персональних даних.</strong> ' +
+    "Файл і всі персональні дані обробляються локально у вашому браузері та нікуди не завантажуються і не надсилаються. Відповідальність за законність обробки, обмеження доступу, зберігання, друк, передавання та захист персональних даних і сформованих файлів несе користувач.";
+
+  singleTablePrintAreaEl.append(heading, meta, legend, privacy, clone);
+}
+
+function cleanupPrintState() {
+  document.body.classList.remove(
+    'print-single-table',
+    'print-mode-mono',
+    'print-mode-color'
+  );
+  clearCapturedPrintColors();
+  singleTablePrintAreaEl.innerHTML = '';
+}
+
+function printSingleTable(content) {
+  if (!content) return;
+
+  applyPrintMode();
+  prepareSingleTablePrint(content);
+  document.body.classList.add('print-single-table');
+
+  requestAnimationFrame(() => {
+    window.print();
+  });
+}
+
+
+function updatePrintHeader() {
+  printFacultyEl.textContent = facultyEl.value || 'Не вибрано';
+  printSourceFileEl.textContent =
+    fileEl.files && fileEl.files[0] ? fileEl.files[0].name : 'Не вказано';
+  printGeneratedAtEl.textContent = new Intl.DateTimeFormat('uk-UA', {
+    dateStyle: 'long',
+    timeStyle: 'short'
+  }).format(new Date());
+  printModeLabelEl.textContent = selectedPrintModeLabel();
+}
+
+function esc(value) {
+  return String(value ?? '').replace(
+    /[&<>"']/g,
+    c => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[c]
+  );
+}
+
+function normalizeThreshold(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 145;
+  return Math.max(101, Math.min(199, Math.round(n)));
+}
+
+function yesNo(value) {
+  return value ? 'Так' : 'Ні';
+}
+
+function booleanChip(value) {
+  if (value == null || value === '') return '';
+  return `<span class="chip ${value ? 'chip-yes' : 'chip-no'}">${yesNo(value)}</span>`;
+}
+
+function statusChip(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return '';
+
+  const normalized = text.toLocaleLowerCase('uk-UA');
+  let cls = 'status-info';
+
+  if (/(скас|відмов|відхил|ануль|не допущ|втрата пріор)/u.test(normalized)) {
+    cls = 'status-danger';
+  } else if (/(зарах|рекоменд|допущ|підтвердж|до наказ)/u.test(normalized)) {
+    cls = 'status-success';
+  } else if (/(очіку|розгляд|перевір|уточнен|потребує|зареєстр)/u.test(normalized)) {
+    cls = 'status-warning';
+  }
+
+  return `<span class="chip ${cls}">${esc(text)}</span>`;
+}
+
+function scoreChip(value) {
+  if (value == null || value === '') return '';
+
+  const score = Number(value);
+  const cls = Number.isFinite(score) && score >= 130
+    ? 'score-pass'
+    : 'score-fail';
+
+  return `<span class="chip score-chip ${cls}">${esc(value)}</span>`;
+}
+
+function sumField(rows, key) {
+  return rows.reduce((sum, row) => sum + (Number(row[key]) || 0), 0);
+}
+
+function caseCodeChip(value) {
+  const code = String(value ?? '').trim();
+  if (!code) return '';
+
+  return `
+    <span class="case-code-chip">
+      <span>${esc(code)}</span>
+      <button
+        type="button"
+        class="copy-code-btn screen-only"
+        data-copy-code="${esc(code)}"
+        title="Копіювати шифр"
+        aria-label="Копіювати шифр ${esc(code)}"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1Zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 16H8V7h11v14Z"/>
+        </svg>
+      </button>
+    </span>
+  `;
+}
+
+async function copyTextToClipboard(value) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const copied = document.execCommand('copy');
+  textarea.remove();
+
+  if (!copied) throw new Error('Копіювання не підтримується браузером');
+}
+
+function resetSortState(state) {
+  state.key = null;
+  state.dir = 1;
+}
+
+function comparableValue(value) {
+  if (Array.isArray(value)) return value.join(' | ');
+  if (typeof value === 'boolean') return value ? 1 : 0;
+  return value;
+}
+
+function isEmptySortValue(value) {
+  return value == null || value === '' ||
+    (Array.isArray(value) && value.length === 0);
+}
+
+function compareByKey(a, b, key, dir) {
+  const av = comparableValue(a ? a[key] : null);
+  const bv = comparableValue(b ? b[key] : null);
+  const ae = isEmptySortValue(av);
+  const be = isEmptySortValue(bv);
+
+  if (ae || be) {
+    if (ae && be) return 0;
+    return ae ? 1 : -1;
+  }
+
+  let result;
+  if (typeof av === 'number' && typeof bv === 'number') {
+    result = av - bv;
+  } else {
+    result = String(av).localeCompare(String(bv), 'uk', {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
+  return dir * result;
+}
+
+function clickSort(state, key) {
+  if (state.key === key) {
+    state.dir *= -1;
+  } else {
+    state.key = key;
+    state.dir = 1;
+  }
+}
+
+function updateSortIndicators(tableId, state) {
+  const table = $(tableId);
+  if (!table) return;
+
+  for (const button of table.querySelectorAll('.table-sort-button')) {
+    const active = button.dataset.sortKey === state.key;
+    const indicator = button.querySelector('.sort-indicator');
+    if (indicator) indicator.textContent = active ? (state.dir === 1 ? '▲' : '▼') : '';
+  }
+}
+
+function initializeSortableTable(tableId, keys, state, render, resetButtonId) {
+  const table = $(tableId);
+  if (!table || !table.tHead || !table.tHead.rows.length) return;
+
+  [...table.tHead.rows[0].cells].forEach((header, index) => {
+    const key = keys[index];
+    if (!key) return;
+
+    const label = header.innerHTML;
+    header.innerHTML = `
+      <button type="button" class="table-sort-button" data-sort-key="${esc(key)}">
+        <span>${label}</span>
+        <span class="sort-indicator" aria-hidden="true"></span>
+      </button>
+    `;
+  });
+
+  table.tHead.addEventListener('click', event => {
+    const button = event.target.closest('.table-sort-button');
+    if (!button) return;
+    clickSort(state, button.dataset.sortKey);
+    render();
+  });
+
+  $(resetButtonId).addEventListener('click', () => {
+    resetSortState(state);
+    render();
+  });
+}
+
+function defaultSummaryCompare(a, b) {
+  return String(a.specialty).localeCompare(String(b.specialty), 'uk', {
+    numeric: true,
+    sensitivity: 'base'
+  });
+}
+
+function sortedSummaryRows() {
+  const rows = [...currentSummary];
+  if (!summarySort.key) return rows.sort(defaultSummaryCompare);
+
+  return rows.sort((a, b) =>
+    compareByKey(a, b, summarySort.key, summarySort.dir) ||
+    defaultSummaryCompare(a, b)
+  );
+}
+
+function defaultPriorityCompare(a, b) {
+  const as = a.score == null ? -Infinity : a.score;
+  const bs = b.score == null ? -Infinity : b.score;
+  return bs - as ||
+    String(a.personName).localeCompare(String(b.personName), 'uk');
+}
+
+function sortedPriorityRows() {
+  const rows = [...currentPriorityDetail];
+  if (!prioritySort.key) return rows.sort(defaultPriorityCompare);
+
+  return rows.sort((a, b) =>
+    compareByKey(a, b, prioritySort.key, prioritySort.dir) ||
+    defaultPriorityCompare(a, b)
+  );
+}
+
+function defaultDetailCompare(a, b) {
+  const ad = a.dateMs == null ? -Infinity : a.dateMs;
+  const bd = b.dateMs == null ? -Infinity : b.dateMs;
+  return bd - ad ||
+    String(a.personName).localeCompare(String(b.personName), 'uk') ||
+    String(a.appId).localeCompare(String(b.appId), 'uk');
+}
+
+function sortedDetailRows() {
+  const rows = [...currentDetail];
+  const grouped = currentDetailInfo && currentDetailInfo.kind === 'duplicates';
+
+  if (!grouped) {
+    if (!detailSort.key) return rows.sort(defaultDetailCompare);
+    return rows.sort((a, b) =>
+      compareByKey(a, b, detailSort.key, detailSort.dir) ||
+      defaultDetailCompare(a, b)
+    );
+  }
+
+  const groups = new Map();
+  for (const row of rows) {
+    const code = String(row.caseCode ?? '').trim();
+    let group = groups.get(code);
+    if (!group) {
+      group = { caseCode: code, rows: [] };
+      groups.set(code, group);
+    }
+    group.rows.push(row);
+  }
+
+  const list = [...groups.values()];
+  for (const group of list) {
+    group.rows.sort((a, b) =>
+      detailSort.key
+        ? compareByKey(a, b, detailSort.key, detailSort.dir) || defaultDetailCompare(a, b)
+        : defaultDetailCompare(a, b)
+    );
+  }
+
+  list.sort((a, b) => {
+    if (!detailSort.key || detailSort.key === 'caseCode') {
+      return compareByKey(
+        a,
+        b,
+        'caseCode',
+        detailSort.key ? detailSort.dir : 1
+      );
+    }
+    return compareByKey(a.rows[0], b.rows[0], detailSort.key, detailSort.dir) ||
+      String(a.caseCode).localeCompare(String(b.caseCode), 'uk');
+  });
+
+  return list.flatMap(group => group.rows);
+}
+
+function buildSortedDuplicateGroups() {
+  const groups = new Map();
+
+  for (const row of currentDuplicates) {
+    const key = row.specialty + '\u0000' + row.caseCode;
+    let group = groups.get(key);
+    if (!group) {
+      group = { specialty: row.specialty, caseCode: row.caseCode, rows: [] };
+      groups.set(key, group);
+    }
+    group.rows.push(row);
+  }
+
+  const list = [...groups.values()];
+  for (const group of list) {
+    group.rows.sort((a, b) =>
+      duplicatesSort.key
+        ? compareByKey(a, b, duplicatesSort.key, duplicatesSort.dir) ||
+          defaultDetailCompare(a, b)
+        : defaultDetailCompare(a, b)
+    );
+  }
+
+  list.sort((a, b) => {
+    if (!duplicatesSort.key) {
+      return String(a.specialty).localeCompare(String(b.specialty), 'uk') ||
+        String(a.caseCode).localeCompare(String(b.caseCode), 'uk');
+    }
+    if (duplicatesSort.key === 'specialty' || duplicatesSort.key === 'caseCode') {
+      return compareByKey(a, b, duplicatesSort.key, duplicatesSort.dir) ||
+        String(a.specialty).localeCompare(String(b.specialty), 'uk') ||
+        String(a.caseCode).localeCompare(String(b.caseCode), 'uk');
+    }
+    return compareByKey(a.rows[0], b.rows[0], duplicatesSort.key, duplicatesSort.dir) ||
+      String(a.specialty).localeCompare(String(b.specialty), 'uk') ||
+      String(a.caseCode).localeCompare(String(b.caseCode), 'uk');
+  });
+
+  return list;
+}
+
+function facultyThresholds(faculty) {
+  let map = thresholdsByFaculty.get(faculty);
+  if (!map) {
+    map = new Map();
+    thresholdsByFaculty.set(faculty, map);
+  }
+  return map;
+}
+
+function thresholdFor(faculty, specialty) {
+  const map = facultyThresholds(faculty);
+  return map.has(specialty) ? map.get(specialty) : 145;
+}
+
+function thresholdsObject(faculty) {
+  const map = facultyThresholds(faculty);
+  const obj = Object.create(null);
+
+  for (const [specialty, value] of map) obj[specialty] = value;
+  return obj;
+}
+
+function requestSummary() {
+  if (!ready || !facultyEl.value) return;
+
+  const id = ++summaryRequestNo;
+
+  worker.postMessage({
+    type: 'summarize',
+    faculty: facultyEl.value,
+    thresholds: thresholdsObject(facultyEl.value),
+    requestNo: id
+  });
+}
+
+function categoryLabel(kind, threshold) {
+  const labels = {
+    persons: 'Усі вступники',
+    above: 'Бал ≥ ' + threshold,
+    below: 'Бал < ' + threshold,
+    budget: 'Проходять на бюджет — бал ≥ 130',
+    contractOnly: 'Проходять тільки на контракт — бал < 130',
+    claimsBudgetBelow130: 'Претендують на бюджет, але бал < 130',
+    college: 'Вступники з коледжу',
+    apps: 'Усі чинні заяви',
+    cancelledByApplicant: 'Скасовано вступником',
+    cancelledPriority: 'Скасовано (втрата пріор.)',
+    duplicates: 'Заяви з дубльованим шифром справи'
+  };
+  return labels[kind] || kind;
+}
+
+function countButton(value, specialty, kind, threshold) {
+  const disabled = Number(value) === 0 ? ' disabled' : '';
+  return `<button
+    class="count-btn"
+    data-specialty="${esc(specialty)}"
+    data-kind="${esc(kind)}"
+    data-threshold="${threshold}"
+    ${disabled}
+  >${value}</button>`;
+}
+
+
+const CATEGORY_REFERENCE = {
+  '100': ['Особи з інвалідністю внаслідок війни, які не спроможні відвідувати заклад освіти', 'Співбесіда і творчий конкурс без НМТ; вступ на бюджет за позитивною оцінкою; переведення на вакантні бюджетні місця.'],
+  '101': ['Постраждалі внаслідок Чорнобильської катастрофи', 'Співбесіда і творчий конкурс без НМТ; вступ на бюджет за позитивною оцінкою; переведення на вакантні бюджетні місця.'],
+  '103': ['Постраждалі учасники Революції Гідності, особи з інвалідністю внаслідок війни та учасники бойових дій', 'Співбесіда і творчий конкурс без НМТ; квота-1; переведення на вакантні бюджетні місця.'],
+  '104': ['Діти-сироти та діти, позбавлені батьківського піклування', 'Квота-1; переведення на вакантні бюджетні місця.'],
+  '105': ['Особи з інвалідністю, які не брали участі в НМТ через захворювання або патологічний стан', 'Співбесіда і творчий конкурс без НМТ; квота-1; переведення на вакантні бюджетні місця.'],
+  '106': ['Особи з інвалідністю I–II груп, які брали участь у НМТ', 'Квота-1; переведення на вакантні бюджетні місця.'],
+  '1070': ['Особи з ТОТ після 1 жовтня 2025 року без українського документа про ПЗСО', 'Спеціальні вступні випробування через освітній центр; квота-2; переведення на вакантні бюджетні місця.'],
+  '1071': ['Особи з ТОТ після 1 жовтня 2025 року з українським документом про ПЗСО', 'Співбесіди замість НМТ; квота-2; переведення на вакантні бюджетні місця.'],
+  '1072': ['Особи з ТОТ, які переселилися до 1 жовтня 2025 року', 'Квота-2; переведення на вакантні бюджетні місця.'],
+  '1080': ['Особи з ТОТ АР Крим і м. Севастополя після 1 жовтня 2025 року без українського документа про ПЗСО', 'Спеціальні вступні випробування; квота-2; переведення на вакантні бюджетні місця.'],
+  '1081': ['Особи з ТОТ АР Крим і м. Севастополя після 1 жовтня 2025 року з українським документом про ПЗСО', 'Співбесіди замість НМТ; квота-2; переведення на вакантні бюджетні місця.'],
+  '1082': ['Особи з ТОТ АР Крим і м. Севастополя, які переселилися до 1 жовтня 2025 року', 'Квота-2; переведення на вакантні бюджетні місця.'],
+  '1090': ['Особи з територій активних бойових дій після 1 жовтня 2025 року без українського документа про ПЗСО', 'Спеціальні вступні випробування; квота-2; переведення на вакантні бюджетні місця.'],
+  '1091': ['Особи з територій активних бойових дій після 1 жовтня 2025 року з українським документом про ПЗСО', 'Співбесіди замість НМТ; квота-2; переведення на вакантні бюджетні місця.'],
+  '1092': ['Особи з територій активних бойових дій, які переселилися до 1 жовтня 2025 року', 'Квота-2; переведення на вакантні бюджетні місця.'],
+  '110': ['Діти поліцейських, які загинули або пропали безвісти під час виконання обов’язків', 'Обов’язкове переведення на вакантні бюджетні місця.'],
+  '111': ['Діти загиблих або померлих осіб відповідно до закону про статус ветеранів війни', 'Обов’язкове переведення на вакантні бюджетні місця.'],
+  '112': ['Діти учасників бойових дій на території інших держав, які загинули або пропали безвісти', 'Обов’язкове переведення на вакантні бюджетні місця.'],
+  '113': ['Діти військовослужбовців, які загинули або пропали безвісти під час служби', 'Обов’язкове переведення на вакантні бюджетні місця.'],
+  '114': ['Особи з інвалідністю I–II груп та діти з інвалідністю до 18 років', 'Переведення на вакантні бюджетні місця.'],
+  '115': ['Особи з інвалідністю з числа ліквідаторів аварії на ЧАЕС і потерпілих від Чорнобильської катастрофи', 'Переведення на вакантні бюджетні місця.'],
+  '116': ['Шахтарі та діти шахтарів у передбачених законом випадках', 'Переведення на вакантні бюджетні місця.'],
+  '117': ['Внутрішньо переміщені особи', 'Переведення на вакантні бюджетні місця.'],
+  '119': ['Особи з територій можливих бойових дій станом на 1 липня 2026 року', 'Переведення на вакантні бюджетні місця.'],
+  '124': ['Особи, позбавлені волі внаслідок збройної агресії проти України', 'Квота-1 на спеціально виділені бюджетні місця.'],
+  '125': ['Діти загиблих осіб, позбавлених свободи внаслідок збройної агресії', 'Обов’язкове переведення на вакантні бюджетні місця.'],
+  '130': ['Особи, яким відмовлено в реєстрації на НМТ через неможливість створення спеціальних умов', 'Вступ за співбесідою; квота-1.'],
+  '133': ['Діти постраждалих учасників Революції Гідності, УБД, осіб з інвалідністю внаслідок війни, зниклих безвісти або позбавлених свободи', 'Переведення на вакантні бюджетні місця.'],
+  '138': ['Діти з багатодітних сімей, у яких п’ятеро і більше дітей', 'Переведення на вакантні бюджетні місця.'],
+  '139': ['Діти, один із батьків яких загинув від ушкоджень під час Революції Гідності', 'Обов’язкове переведення на вакантні бюджетні місця.']
+};
+
+function categoryInfo(code) {
+  const item = CATEGORY_REFERENCE[code];
+  return item
+    ? { title: item[0], benefit: item[1] }
+    : {
+        title: 'Категорія відсутня у довіднику',
+        benefit: 'Перевірте код у чинному порядку прийому або в ЄДЕБО.'
+      };
+}
+
+function renderCategoryReference() {
+  $('categoryReferenceBody').innerHTML = Object.entries(CATEGORY_REFERENCE)
+    .sort((a, b) => Number(a[0]) - Number(b[0]))
+    .map(([code, item]) => `
+      <tr>
+        <td>${caseCodeChip(code)}</td>
+        <td>${esc(item[0])}</td>
+        <td>${esc(item[1])}</td>
+      </tr>
+    `)
+    .join('');
+}
+
+
+function categoryApplicantIdentity(person) {
+  const personId = String(person.personId || '').trim();
+  if (personId) return `person:${personId}`;
+
+  const email = String(person.email || '').trim().toLocaleLowerCase('uk');
+  if (email) return `email:${email}`;
+
+  const phone = String(person.phone || '').replace(/\D+/g, '');
+  if (phone) return `phone:${phone}`;
+
+  return [
+    'fallback',
+    String(person.personName || '').trim().toLocaleLowerCase('uk')
+  ].join(':');
+}
+
+function countUniqueCategoryApplicants(groups) {
+  const identities = new Set();
+
+  for (const group of groups) {
+    for (const person of group.applicants || []) {
+      identities.add(categoryApplicantIdentity(person));
+    }
+  }
+
+  return identities.size;
+}
+
+
+function renderCategoryGroups() {
+  const groups = Array.isArray(currentCategories) ? currentCategories : [];
+  const uniqueApplicantCount = countUniqueCategoryApplicants(groups);
+
+  $('categoryUniqueApplicantsCount').textContent =
+    `Унікальних вступників: ${uniqueApplicantCount}`;
+
+  $('categoryGroups').innerHTML = groups.map(group => {
+    const info = categoryInfo(group.code);
+    const applicants = Array.isArray(group.applicants) ? group.applicants : [];
+    const applicationCount = applicants.reduce(
+      (sum, person) => sum + person.applications.length,
+      0
+    );
+
+    return `
+      <section class="category-group">
+        <div class="category-group-head">
+          <div class="category-group-info">
+            <div>
+              <span class="category-code">${esc(group.code)}</span>
+              <span class="category-title">${esc(info.title)}</span>
+            </div>
+            <div class="category-benefit">${esc(info.benefit)}</div>
+            <div class="category-meta">
+              Вступників: ${applicants.length}; заяв: ${applicationCount}
+            </div>
+          </div>
+          <div class="category-group-actions screen-only">
+            <button
+              type="button"
+              class="table-toggle-btn"
+              data-table-toggle="category-table-${esc(group.code)}"
+              aria-expanded="true"
+            >Згорнути таблицю</button>
+            <button
+              type="button"
+              class="table-pdf-btn"
+              data-table-pdf="category-table-${esc(group.code)}"
+            >PDF таблиці</button>
+          </div>
+        </div>
+        <div
+          id="category-table-${esc(group.code)}"
+          class="table-wrap collapsible-table-content"
+          data-print-title="Пільгова категорія ${esc(group.code)} — ${esc(info.title)}"
+        >
+          <table>
+            <thead>
+              <tr>
+                <th>Вступник</th>
+                <th>Ід персони</th>
+                <th>Подані заяви</th>
+                <th>Контактний номер</th>
+                <th>Електронна адреса</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${applicants.map(person => `
+                <tr>
+                  <td>${esc(person.personName)}</td>
+                  <td>${esc(person.personId)}</td>
+                  <td class="category-applications-cell">
+                    <table class="application-microtable">
+                      <thead>
+                        <tr>
+                          <th class="micro-specialty">Спеціальність</th>
+                          <th class="micro-score">Бал</th>
+                          <th class="micro-place">Тип місця</th>
+                          <th class="micro-case">Шифр справи</th>
+                          <th class="micro-idz">Ід заявки</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${person.applications.map(application => {
+                          const place = application.claimsBudget
+                            ? '<span class="chip place-chip-budget">Бюджет</span>'
+                            : application.claimsContract
+                              ? '<span class="chip place-chip-contract">Контракт</span>'
+                              : '<span class="chip place-chip-unknown">Не вказано</span>';
+
+                          return `
+                            <tr>
+                              <td class="micro-specialty">${esc(application.specialty)}</td>
+                              <td class="micro-score">${scoreChip(application.score)}</td>
+                              <td class="micro-place">${place}</td>
+                              <td class="micro-case">${caseCodeChip(application.caseCode)}</td>
+                              <td class="micro-idz"><span class="idz-value">${esc(application.appId)}</span></td>
+                            </tr>
+                          `;
+                        }).join('')}
+                      </tbody>
+                    </table>
+                  </td>
+                  <td class="nowrap">${esc(person.phone)}</td>
+                  <td>${esc(person.email)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="5">
+                  Разом вступників: ${applicants.length};
+                  заяв: ${applicationCount}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    `;
+  }).join('');
+
+  $('categoryGroupsEmpty').hidden = groups.length > 0;
+
+  // Пільговики завжди починають зі згорнутого стану після обробки файлу.
+  setSectionCollapsed($('categoryApplicantsContent'), true);
+}
+
+function renderSummary(data) {
+  if (data) {
+    currentSummary = data.summary;
+    currentDuplicates = data.duplicates;
+    currentCategories = data.categories || [];
+    currentTotals = data.totals;
+  }
+
+  $('sSpecialties').textContent = currentTotals.specialties || 0;
+  $('sPersons').textContent = currentTotals.persons || 0;
+  $('sApps').textContent = currentTotals.apps || 0;
+  $('sDuplicateCodes').textContent = currentTotals.duplicateCodes || 0;
+
+  const summaryRows = sortedSummaryRows();
+
+  $('summaryBody').innerHTML = summaryRows.length
+    ? summaryRows.map(x => `
+      <tr>
+        <td>${esc(x.specialty)}</td>
+        <td class="center">
+          <input
+            class="threshold"
+            type="number"
+            min="101"
+            max="199"
+            step="1"
+            value="${x.threshold}"
+            data-specialty="${esc(x.specialty)}"
+            aria-label="Поріг бала для ${esc(x.specialty)}"
+          >
+        </td>
+        <td class="num">${countButton(x.persons, x.specialty, 'persons', x.threshold)}</td>
+        <td class="num">${countButton(x.above, x.specialty, 'above', x.threshold)}</td>
+        <td class="num">${countButton(x.below, x.specialty, 'below', x.threshold)}</td>
+        <td class="num">${countButton(x.budget, x.specialty, 'budget', x.threshold)}</td>
+        <td class="num">${countButton(x.contractOnly, x.specialty, 'contractOnly', x.threshold)}</td>
+        <td class="num">${countButton(x.claimsBudgetBelow130, x.specialty, 'claimsBudgetBelow130', x.threshold)}</td>
+        <td class="num">${countButton(x.college, x.specialty, 'college', x.threshold)}</td>
+        <td class="num">${countButton(x.apps, x.specialty, 'apps', x.threshold)}</td>
+        <td class="num">${countButton(x.cancelledByApplicant, x.specialty, 'cancelledByApplicant', x.threshold)}</td>
+        <td class="num">${countButton(x.cancelledPriority, x.specialty, 'cancelledPriority', x.threshold)}</td>
+        <td class="num">${countButton(x.duplicateCodes, x.specialty, 'duplicates', x.threshold)}</td>
+      </tr>
+    `).join('')
+    : '<tr><td colspan="13" class="empty">Немає даних.</td></tr>';
+
+  $('summaryFoot').innerHTML = currentSummary.length
+    ? `
+      <tr>
+        <td class="total-label">Разом</td>
+        <td class="center">—</td>
+        <td class="total-value">${sumField(currentSummary, 'persons')}</td>
+        <td class="total-value">${sumField(currentSummary, 'above')}</td>
+        <td class="total-value">${sumField(currentSummary, 'below')}</td>
+        <td class="total-value">${sumField(currentSummary, 'budget')}</td>
+        <td class="total-value">${sumField(currentSummary, 'contractOnly')}</td>
+        <td class="total-value">${sumField(currentSummary, 'claimsBudgetBelow130')}</td>
+        <td class="total-value">${sumField(currentSummary, 'college')}</td>
+        <td class="total-value">${sumField(currentSummary, 'apps')}</td>
+        <td class="total-value">${sumField(currentSummary, 'cancelledByApplicant')}</td>
+        <td class="total-value">${sumField(currentSummary, 'cancelledPriority')}</td>
+        <td class="total-value">${sumField(currentSummary, 'duplicateCodes')}</td>
+      </tr>
+    `
+    : '';
+
+  const groups = buildSortedDuplicateGroups();
+  const html = [];
+
+  for (const group of groups) {
+    const uniquePersons = new Set(
+      group.rows.map(x => x.personId || ('@app:' + x.appId))
+    ).size;
+
+    html.push(`
+      <tr class="duplicate-group-row">
+        <td colspan="10">
+          <div class="duplicate-group-head">
+            ${caseCodeChip(group.caseCode)}
+            <span class="duplicate-specialty">${esc(group.specialty)}</span>
+            <span class="duplicate-group-meta">
+              заяв: ${group.rows.length}; вступників: ${uniquePersons}
+            </span>
+          </div>
+        </td>
+      </tr>
+    `);
+
+    for (const x of group.rows) {
+      html.push(`
+        <tr class="duplicate-child-row">
+          <td>${esc(x.specialty)}</td>
+          <td>${caseCodeChip(x.caseCode)}</td>
+          <td><span class="idz-value">${esc(x.appId)}</span></td>
+          <td>${esc(x.personId)}</td>
+          <td>${esc(x.personName)}</td>
+          <td>${statusChip(x.status)}</td>
+          <td>${booleanChip(x.claimsBudget)}</td>
+          <td>${booleanChip(x.claimsContract)}</td>
+          <td class="num">${scoreChip(x.score)}</td>
+          <td class="nowrap">${esc(x.dateText)}</td>
+        </tr>
+      `);
+    }
+  }
+
+  $('duplicatesBody').innerHTML = html.join('');
+  $('duplicatesFoot').innerHTML = currentDuplicates.length
+    ? `
+      <tr>
+        <td colspan="10" class="total-label">
+          Разом груп дублікатів: ${groups.length};
+          заяв у групах: ${currentDuplicates.length}
+        </td>
+      </tr>
+    `
+    : '';
+
+  const duplicatesEmpty = currentDuplicates.length === 0;
+  $('duplicatesEmpty').hidden = !duplicatesEmpty;
+  $('duplicatesPanel').classList.toggle('print-empty', duplicatesEmpty);
+
+  const duplicatesPdfButton = document.querySelector(
+    '[data-table-pdf="duplicatesTable"]'
+  );
+  if (duplicatesPdfButton) {
+    duplicatesPdfButton.disabled = duplicatesEmpty;
+    duplicatesPdfButton.title = duplicatesEmpty
+      ? 'Немає дублікатів для друку'
+      : '';
+  }
+
+  renderCategoryGroups();
+  renderPriorityChart(currentSummary);
+  updateSortIndicators('summaryTable', summarySort);
+  updateSortIndicators('duplicatesTable', duplicatesSort);
+  resultEl.hidden = false;
+}
+
+function renderPriorityChart(specialties) {
+  const data = Array.isArray(specialties) ? specialties : [];
+
+  $('priorityChartTitle').textContent =
+    'Пріоритети заяв за спеціальностями — ' + facultyEl.value;
+
+  $('priorityChart').innerHTML = data.map(specialtyData => {
+    const priorities = Array.isArray(specialtyData.priorities)
+      ? specialtyData.priorities
+      : [];
+    const max = Math.max(
+      1,
+      ...priorities.map(x => Number(x.applicants) || 0)
+    );
+
+    const bars = priorities.map(x => {
+      const applications = Number(x.applications) || 0;
+      const applicants = Number(x.applicants) || 0;
+      const budget = Number(x.budget) || 0;
+      const contract = Number(x.contract) || 0;
+      const height =
+        applicants === 0
+          ? 2
+          : Math.max(7, Math.round(applicants / max * 100));
+      const disabled = applicants === 0 ? ' disabled' : '';
+
+      return `
+        <div class="priority-item">
+          <div class="priority-count">
+            <span class="priority-count-line">Заяв: ${applications}</span>
+            <span class="priority-count-line">Вступників: ${applicants}</span>
+          </div>
+          <div class="priority-breakdown">(Б: ${budget}; К: ${contract})</div>
+          <button
+            class="priority-bar-button"
+            data-specialty="${esc(specialtyData.specialty)}"
+            data-priority="${x.priority}"
+            aria-label="${esc(specialtyData.specialty)}, пріоритет ${x.priority}: заяв ${applications}, вступників ${applicants}, бюджет ${budget}, контракт ${contract}"
+            title="Заяв: ${applications}; вступників: ${applicants}; бюджет: ${budget}; контракт: ${contract}"
+            ${disabled}
+          >
+            <span class="priority-bar" style="--bar-height:${height}%"></span>
+          </button>
+          <div class="priority-label">${x.priority}</div>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <section class="priority-specialty-chart">
+        <h3 class="priority-specialty-title">${esc(specialtyData.specialty)}</h3>
+        <div class="priority-chart">${bars}</div>
+      </section>
+    `;
+  }).join('');
+}
+
+function requestPriorityDetail(specialty, priority) {
+  const id = ++priorityDetailRequestNo;
+  currentPriority = Number(priority);
+  currentPrioritySpecialty = specialty;
+  currentPriorityDetail = [];
+  currentPriorityApplications = 0;
+
+  $('priorityDetailTitle').textContent =
+    currentPrioritySpecialty + ' — пріоритет ' + currentPriority;
+  $('priorityDetailMeta').textContent = 'Формування списку…';
+  $('priorityDetailBody').innerHTML = '';
+  $('priorityDetailFoot').innerHTML = '';
+  $('priorityDetailEmpty').hidden = true;
+  priorityDetailPanel.hidden = false;
+  priorityDetailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  worker.postMessage({
+    type: 'priorityDetail',
+    faculty: facultyEl.value,
+    specialty: currentPrioritySpecialty,
+    priority: currentPriority,
+    requestNo: id
+  });
+}
+
+function renderPriorityDetail(rows, applications) {
+  if (Array.isArray(rows)) {
+    currentPriorityDetail = rows.map((row, index) => ({
+      ...row,
+      __index: index + 1
+    }));
+  }
+
+  if (Number.isFinite(Number(applications))) {
+    currentPriorityApplications = Number(applications);
+  }
+
+  const priorityRows = sortedPriorityRows();
+
+  $('priorityDetailTitle').textContent =
+    currentPrioritySpecialty + ' — пріоритет ' + currentPriority;
+  $('priorityDetailMeta').textContent =
+    `Заяв: ${currentPriorityApplications.toLocaleString('uk-UA')}; ` +
+    `унікальних вступників: ${currentPriorityDetail.length.toLocaleString('uk-UA')}.`;
+
+  $('priorityDetailBody').innerHTML = priorityRows.map((x, index) => `
+    <tr>
+      <td class="num">${x.__index}</td>
+      <td>${esc(x.personName)}</td>
+      <td>${esc(x.personId)}</td>
+      <td class="num">${scoreChip(x.score)}</td>
+      <td>${booleanChip(x.claimsBudget)}</td>
+      <td>${booleanChip(x.claimsContract)}</td>
+      <td class="multi">${x.caseCodes.map(caseCodeChip).filter(Boolean).join('<br>')}</td>
+      <td class="multi">${x.appIds.map(value => `<span class="idz-value">${esc(value)}</span>`).join('<br>')}</td>
+      <td class="multi"><div class="chip-list">${x.statuses.map(statusChip).filter(Boolean).join('')}</div></td>
+      <td class="nowrap">${esc(x.phone)}</td>
+      <td>${esc(x.email)}</td>
+      <td class="nowrap">${esc(x.dateText)}</td>
+    </tr>
+  `).join('');
+
+  $('priorityDetailFoot').innerHTML = currentPriorityDetail.length
+    ? `
+      <tr>
+        <td colspan="12" class="total-label">
+          Разом заяв: ${currentPriorityApplications};
+          вступників: ${currentPriorityDetail.length}
+        </td>
+      </tr>
+    `
+    : '';
+
+  updateSortIndicators('priorityDetailTable', prioritySort);
+  $('priorityDetailEmpty').hidden = currentPriorityDetail.length > 0;
+}
+
+function requestDetail(specialty, kind, threshold) {
+  const id = ++detailRequestNo;
+
+  currentDetailInfo = {
+    faculty: facultyEl.value,
+    specialty,
+    kind,
+    threshold
+  };
+
+  $('detailTitle').textContent =
+    specialty + ' — ' + categoryLabel(kind, threshold);
+  $('detailMeta').textContent = 'Формування списку…';
+  $('detailBody').innerHTML = '';
+  $('detailFoot').innerHTML = '';
+  $('detailEmpty').hidden = true;
+  detailPanel.hidden = false;
+  detailPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  worker.postMessage({
+    type: 'detail',
+    faculty: facultyEl.value,
+    specialty,
+    kind,
+    threshold,
+    requestNo: id
+  });
+}
+
+function renderDetailRows() {
+  const rows = sortedDetailRows();
+  const groupedDuplicates =
+    currentDetailInfo && currentDetailInfo.kind === 'duplicates';
+
+  if (groupedDuplicates) {
+    const counts = new Map();
+    for (const row of rows) {
+      const code = String(row.caseCode ?? '').trim();
+      counts.set(code, (counts.get(code) || 0) + 1);
+    }
+
+    let previousCode = null;
+    const html = [];
+
+    for (const x of rows) {
+      const code = String(x.caseCode ?? '').trim();
+
+      if (code !== previousCode) {
+        const groupRows = rows.filter(
+          row => String(row.caseCode ?? '').trim() === code
+        );
+        const uniquePersons = new Set(
+          groupRows.map(row => row.personId || ('@app:' + row.appId))
+        ).size;
+
+        html.push(`
+          <tr class="duplicate-group-row">
+            <td colspan="11">
+              <div class="duplicate-group-head">
+                ${caseCodeChip(code)}
+                <span class="duplicate-group-meta">
+                  заяв: ${counts.get(code)}; вступників: ${uniquePersons}
+                </span>
+              </div>
+            </td>
+          </tr>
+        `);
+        previousCode = code;
+      }
+
+      html.push(`
+        <tr class="duplicate-child-row">
+          <td>${esc(x.personName)}</td>
+          <td class="nowrap">${esc(x.phone)}</td>
+          <td>${esc(x.email)}</td>
+          <td>${esc(x.personId)}</td>
+          <td><span class="idz-value">${esc(x.appId)}</span></td>
+          <td>${statusChip(x.status)}</td>
+          <td>${booleanChip(x.claimsBudget)}</td>
+          <td>${booleanChip(x.claimsContract)}</td>
+          <td class="num">${scoreChip(x.appScore)}</td>
+          <td>${caseCodeChip(x.caseCode)}</td>
+          <td class="nowrap">${esc(x.dateText)}</td>
+        </tr>
+      `);
+    }
+
+    $('detailBody').innerHTML = html.join('');
+  } else {
+    $('detailBody').innerHTML = rows.map(x => `
+      <tr>
+        <td>${esc(x.personName)}</td>
+        <td class="nowrap">${esc(x.phone)}</td>
+        <td>${esc(x.email)}</td>
+        <td>${esc(x.personId)}</td>
+        <td><span class="idz-value">${esc(x.appId)}</span></td>
+        <td>${statusChip(x.status)}</td>
+        <td>${booleanChip(x.claimsBudget)}</td>
+        <td>${booleanChip(x.claimsContract)}</td>
+        <td class="num">${scoreChip(x.appScore)}</td>
+        <td>${caseCodeChip(x.caseCode)}</td>
+        <td class="nowrap">${esc(x.dateText)}</td>
+      </tr>
+    `).join('');
+  }
+
+  $('detailFoot').innerHTML = rows.length
+    ? `
+      <tr>
+        <td colspan="11" class="total-label">Разом заяв: ${rows.length}</td>
+      </tr>
+    `
+    : '';
+
+  updateSortIndicators('detailTable', detailSort);
+  $('detailEmpty').hidden = rows.length > 0;
+}
+
+
+worker.onmessage = event => {
+  const m = event.data;
+
+  if (m.type === 'progress') {
+    setStatus(
+      'Оброблено рядків: ' +
+      m.rows.toLocaleString('uk-UA') +
+      '…'
+    );
+    return;
+  }
+
+  if (m.type === 'loaded') {
+    facultyEl.innerHTML = m.faculties.map(
+      x => `<option value="${esc(x)}">${esc(x)}</option>`
+    ).join('');
+
+    facultyEl.disabled = false;
+    printPdfEl.disabled = false;
+    collapseAllTablesEl.disabled = false;
+    expandAllTablesEl.disabled = false;
+    ready = true;
+    updatePrintHeader();
+
+    setStatus(
+      `Готово. Рядків: ${m.meta.totalRows.toLocaleString('uk-UA')}; ` +
+      `чинних заяв: ${m.meta.validRows.toLocaleString('uk-UA')}; ` +
+      `скасовано вступником: ` +
+      `${m.meta.cancelledByApplicant.toLocaleString('uk-UA')}; ` +
+      `скасовано через втрату пріоритету: ` +
+      `${m.meta.cancelledPriority.toLocaleString('uk-UA')}; ` +
+      `кодування: ${m.meta.encoding}.`,
+      'ok'
+    );
+
+    requestSummary();
+    return;
+  }
+
+  if (m.type === 'summary') {
+    if (m.requestNo !== summaryRequestNo) return;
+    renderSummary(m);
+    return;
+  }
+
+  if (m.type === 'priorityDetail') {
+    if (m.requestNo !== priorityDetailRequestNo) return;
+    currentPriority = m.priority;
+    currentPrioritySpecialty = m.specialty;
+    resetSortState(prioritySort);
+    renderPriorityDetail(m.rows, m.applications);
+    return;
+  }
+
+  if (m.type === 'detail') {
+    if (m.requestNo !== detailRequestNo) return;
+
+    currentDetail = m.rows;
+    resetSortState(detailSort);
+
+    $('detailTitle').textContent =
+      m.specialty + ' — ' + categoryLabel(m.kind, m.threshold);
+
+    $('detailMeta').textContent =
+      `Унікальних вступників: ${m.persons.toLocaleString('uk-UA')}; ` +
+      `заяв у списку: ${m.apps.toLocaleString('uk-UA')}. ` +
+      (
+        m.kind === 'duplicates'
+          ? `Заяви згруповані за шифром; усередині групи — за датою.`
+          : `Спочатку показані найновіші заяви.`
+      );
+
+    renderDetailRows();
+    return;
+  }
+
+  if (m.type === 'error') {
+    ready = false;
+    facultyEl.disabled = true;
+    printPdfEl.disabled = true;
+    collapseAllTablesEl.disabled = true;
+    expandAllTablesEl.disabled = true;
+    resultEl.hidden = true;
+    detailPanel.hidden = true;
+    priorityDetailPanel.hidden = true;
+    setStatus('Помилка: ' + m.message, 'err');
+  }
+};
+
+fileEl.addEventListener('change', () => {
+  const file = fileEl.files && fileEl.files[0];
+  if (!file) return;
+
+  ready = false;
+  printPdfEl.disabled = true;
+  collapseAllTablesEl.disabled = true;
+  expandAllTablesEl.disabled = true;
+  currentSummary = [];
+  currentDuplicates = [];
+  currentCategories = [];
+  currentDetail = [];
+  currentPriorityDetail = [];
+  currentPriority = null;
+  currentPrioritySpecialty = '';
+  currentPriorityApplications = 0;
+  resetSortState(summarySort);
+  resetSortState(prioritySort);
+  resetSortState(detailSort);
+  resetSortState(duplicatesSort);
+  thresholdsByFaculty.clear();
+
+  facultyEl.disabled = true;
+  resultEl.hidden = true;
+  detailPanel.hidden = true;
+  priorityDetailPanel.hidden = true;
+
+  setStatus('Читання та обробка файлу…');
+
+  worker.postMessage({
+    type: 'load',
+    file,
+    encoding: encodingEl.value
+  });
+});
+
+facultyEl.addEventListener('change', () => {
+  updatePrintHeader();
+  detailPanel.hidden = true;
+  priorityDetailPanel.hidden = true;
+  currentDetail = [];
+  currentPriorityDetail = [];
+  currentPriority = null;
+  currentPrioritySpecialty = '';
+  currentPriorityApplications = 0;
+  resetSortState(summarySort);
+  resetSortState(prioritySort);
+  resetSortState(detailSort);
+  resetSortState(duplicatesSort);
+  requestSummary();
+});
+
+printPdfEl.addEventListener('click', () => {
+  if (!ready || resultEl.hidden) return;
+
+  applyPrintMode();
+  updatePrintHeader();
+
+  requestAnimationFrame(() => {
+    window.print();
+  });
+});
+
+window.addEventListener('beforeprint', () => {
+  applyPrintMode();
+  updatePrintHeader();
+});
+window.addEventListener('afterprint', cleanupPrintState);
+
+collapseAllTablesEl.addEventListener('click', () => {
+  setAllTablesCollapsed(true);
+});
+
+expandAllTablesEl.addEventListener('click', () => {
+  setAllTablesCollapsed(false);
+});
+
+document.addEventListener('click', async event => {
+  const sectionToggleButton = event.target.closest('[data-section-toggle]');
+
+  if (sectionToggleButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const content = $(sectionToggleButton.dataset.sectionToggle);
+    if (content) setSectionCollapsed(content, !content.hidden);
+    return;
+  }
+
+  const toggleButton = event.target.closest('[data-table-toggle]');
+
+  if (toggleButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const content = $(toggleButton.dataset.tableToggle);
+    if (content) setTableCollapsed(content, !content.hidden);
+    return;
+  }
+
+  const pdfButton = event.target.closest('[data-table-pdf]');
+
+  if (pdfButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const content = $(pdfButton.dataset.tablePdf);
+    printSingleTable(content);
+    return;
+  }
+
+  const button = event.target.closest('.copy-code-btn');
+  if (!button) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const code = button.dataset.copyCode || '';
+  if (!code) return;
+
+  const original = button.innerHTML;
+
+  try {
+    await copyTextToClipboard(code);
+    button.classList.add('copied');
+    button.textContent = '✓';
+    button.title = 'Скопійовано';
+
+    setTimeout(() => {
+      button.classList.remove('copied');
+      button.innerHTML = original;
+      button.title = 'Копіювати шифр';
+    }, 1000);
+  } catch {
+    button.title = 'Не вдалося скопіювати';
+  }
+});
+
+renderCategoryReference();
+
+installStaticTableControls(
+  'summaryTable',
+  'Показники по спеціальностях'
+);
+installStaticTableControls(
+  'priorityDetailTable',
+  'Вступники за пріоритетом',
+  'priorityDetailTitle'
+);
+installStaticTableControls(
+  'detailTable',
+  'Детальний список вступників',
+  'detailTitle'
+);
+installStaticTableControls(
+  'categoryReferenceTable',
+  'Довідник пільгових категорій 2026'
+);
+installStaticTableControls(
+  'duplicatesTable',
+  'Дублікати шифрів особових справ'
+);
+
+initializeSortableTable(
+  'summaryTable',
+  [
+    'specialty', 'threshold', 'persons', 'above', 'below', 'budget',
+    'contractOnly', 'claimsBudgetBelow130', 'college', 'apps',
+    'cancelledByApplicant', 'cancelledPriority', 'duplicateCodes'
+  ],
+  summarySort,
+  () => renderSummary(),
+  'resetSummarySort'
+);
+
+initializeSortableTable(
+  'priorityDetailTable',
+  [
+    '__index', 'personName', 'personId', 'score', 'claimsBudget',
+    'claimsContract', 'caseCodes', 'appIds', 'statuses', 'phone',
+    'email', 'dateMs'
+  ],
+  prioritySort,
+  () => renderPriorityDetail(),
+  'resetPrioritySort'
+);
+
+initializeSortableTable(
+  'detailTable',
+  [
+    'personName', 'phone', 'email', 'personId', 'appId', 'status',
+    'claimsBudget', 'claimsContract', 'appScore', 'caseCode', 'dateMs'
+  ],
+  detailSort,
+  renderDetailRows,
+  'resetDetailSort'
+);
+
+initializeSortableTable(
+  'duplicatesTable',
+  [
+    'specialty', 'caseCode', 'appId', 'personId', 'personName',
+    'status', 'claimsBudget', 'claimsContract', 'score', 'dateMs'
+  ],
+  duplicatesSort,
+  () => renderSummary(),
+  'resetDuplicatesSort'
+);
+
+
+$('priorityChart').addEventListener('click', event => {
+  const button = event.target.closest('.priority-bar-button');
+  if (!button || button.disabled) return;
+  requestPriorityDetail(
+    button.dataset.specialty,
+    Number(button.dataset.priority)
+  );
+});
+
+$('closePriorityDetail').addEventListener('click', () => {
+  priorityDetailPanel.hidden = true;
+});
+
+$('summaryBody').addEventListener('change', event => {
+  const input = event.target.closest('.threshold');
+  if (!input) return;
+
+  const specialty = input.dataset.specialty;
+  const threshold = normalizeThreshold(input.value);
+
+  input.value = threshold;
+  facultyThresholds(facultyEl.value).set(specialty, threshold);
+  detailPanel.hidden = true;
+  requestSummary();
+});
+
+$('summaryBody').addEventListener('click', event => {
+  const button = event.target.closest('.count-btn');
+  if (!button || button.disabled) return;
+
+  const specialty = button.dataset.specialty;
+  requestDetail(
+    specialty,
+    button.dataset.kind,
+    thresholdFor(facultyEl.value, specialty)
+  );
+});
+
+$('closeDetail').addEventListener('click', () => {
+  detailPanel.hidden = true;
+});
+
+function csvCell(value) {
+  const s = String(value ?? '');
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+function downloadCsv(name, rows) {
+  const text =
+    '\uFEFF' +
+    rows.map(row => row.map(csvCell).join(';')).join('\r\n');
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(
+    new Blob([text], { type: 'text/csv;charset=utf-8' })
+  );
+  a.download = name;
+  a.click();
+
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+
+$('exportPriorityDetail').addEventListener('click', () => {
+  downloadCsv(
+    'priorytet-' + currentPriority + '-' +
+    currentPrioritySpecialty.replace(/[\\/:*?"<>|]+/g, '_') + '.csv',
+    [
+      [
+        '№',
+        'Вступник',
+        'Ід персони',
+        'Конкурсний бал',
+        'Претендує на бюджет',
+        'Претендує на контракт',
+        'Номер (шифр) особової справи',
+        'Спеціальність',
+        'Ід заявки',
+        'Статус заявки',
+        'Контактний номер',
+        'Електронна адреса',
+        'Дата подання'
+      ],
+      ...sortedPriorityRows().map((x, index) => [
+        index + 1,
+        x.personName,
+        x.personId,
+        x.score == null ? '' : x.score,
+        yesNo(x.claimsBudget),
+        yesNo(x.claimsContract),
+        x.caseCodes.join(' | '),
+        currentPrioritySpecialty,
+        x.appIds.join(' | '),
+        x.statuses.join(' | '),
+        x.phone,
+        x.email,
+        x.dateText
+      ])
+    ]
+  );
+});
+
+$('exportSummary').addEventListener('click', () => {
+  downloadCsv('statystyka-vstupnykiv.csv', [
+    [
+      'Спеціальність',
+      'Поріг бала',
+      'Вступників',
+      'Бал >= порогу',
+      'Бал < порогу',
+      'Проходять на бюджет (бал >= 130)',
+      'Тільки контракт (бал < 130)',
+      'Претендують на бюджет, але бал < 130',
+      'З коледжу',
+      'Чинних заяв',
+      'Скасовано вступником',
+      'Скасовано (втрата пріор.)',
+      'Дубльованих шифрів'
+    ],
+    ...sortedSummaryRows().map(x => [
+      x.specialty,
+      x.threshold,
+      x.persons,
+      x.above,
+      x.below,
+      x.budget,
+      x.contractOnly,
+      x.claimsBudgetBelow130,
+      x.college,
+      x.apps,
+      x.cancelledByApplicant,
+      x.cancelledPriority,
+      x.duplicateCodes
+    ])
+  ]);
+});
+
+$('exportDuplicates').addEventListener('click', () => {
+  downloadCsv('dublikaty-shyfriv.csv', [
+    [
+      'Спеціальність',
+      'Номер (шифр) особової справи',
+      'Ід заявки',
+      'Ід персони',
+      'Вступник',
+      'Статус заявки',
+      'Претендує на бюджет',
+      'Претендує на контракт',
+      'Конкурсний бал',
+      'Дата подання'
+    ],
+    ...buildSortedDuplicateGroups().flatMap(group => group.rows).map(x => [
+      x.specialty,
+      x.caseCode,
+      x.appId,
+      x.personId,
+      x.personName,
+      x.status,
+      yesNo(x.claimsBudget),
+      yesNo(x.claimsContract),
+      x.score == null ? '' : x.score,
+      x.dateText
+    ])
+  ]);
+});
+
+$('exportDetail').addEventListener('click', () => {
+  const rows = sortedDetailRows();
+  const specialty = currentDetailInfo ? currentDetailInfo.specialty : 'spysok';
+
+  downloadCsv('vstupnyky-' + specialty.replace(/[\\/:*?"<>|]+/g, '_') + '.csv', [
+    [
+      'Вступник',
+      'Контактний номер',
+      'Електронна адреса',
+      'Ід персони',
+      'Ід заявки',
+      'Статус заявки',
+      'Претендує на бюджет',
+      'Претендує на контракт',
+      'Бал заяви',
+      'Номер (шифр) особової справи',
+      'Дата подання'
+    ],
+    ...rows.map(x => [
+      x.personName,
+      x.phone,
+      x.email,
+      x.personId,
+      x.appId,
+      x.status,
+      yesNo(x.claimsBudget),
+      yesNo(x.claimsContract),
+      x.appScore == null ? '' : x.appScore,
+      x.caseCode,
+      x.dateText
+    ])
+  ]);
+});
+</script>
+</body>
+</html>
