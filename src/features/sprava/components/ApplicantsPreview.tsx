@@ -25,6 +25,7 @@ type Props = {
   specialtyOptions: string[]
   formOptions: string[]
   rows: ApplicantRow[]
+  totalLoaded: number
   onReset: () => void
   onGenerate: () => void
   onPreview: (id: string) => void
@@ -37,10 +38,13 @@ export function ApplicantsPreview({
   specialtyOptions,
   formOptions,
   rows,
+  totalLoaded,
   onReset,
   onGenerate,
   onPreview,
 }: Props) {
+  const needsSpecialty = !filters.specialty
+
   const set = (key: keyof ApplicantFilters) => (value: string) => {
     onFiltersChange({
       ...filters,
@@ -63,7 +67,11 @@ export function ApplicantsPreview({
         sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between' }}
       >
         <Typography variant="h6">Вступники</Typography>
-        <Chip label={rows.length} color="primary" size="small" />
+        <Chip
+          label={`${rows.length} / ${totalLoaded}`}
+          color="primary"
+          size="small"
+        />
       </Stack>
 
       <Stack
@@ -157,15 +165,24 @@ export function ApplicantsPreview({
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.length === 0 ? (
+            {needsSpecialty ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
                   align="center"
                   sx={{ py: 4, color: 'text.secondary' }}
                 >
-                  Немає рядків для відображення. Завантажте Excel або змініть
-                  фільтри.
+                  Оберіть спеціальність вище, щоб побачити список вступників.
+                </TableCell>
+              </TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  align="center"
+                  sx={{ py: 4, color: 'text.secondary' }}
+                >
+                  Нічого не знайдено за поточними фільтрами.
                 </TableCell>
               </TableRow>
             ) : (
@@ -198,7 +215,12 @@ export function ApplicantsPreview({
         <Button variant="outlined" onClick={onReset}>
           Новий файл
         </Button>
-        <Button variant="contained" size="large" onClick={onGenerate}>
+        <Button
+          variant="contained"
+          size="large"
+          disabled={rows.length === 0}
+          onClick={onGenerate}
+        >
           Згенерувати форми ({rows.length})
         </Button>
       </Stack>

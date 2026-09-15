@@ -1,61 +1,34 @@
-import { Alert, Typography } from '@mui/material'
-import { useMemo, useState } from 'react'
+import { Alert, Box, CircularProgress, Typography } from '@mui/material'
+import { useState } from 'react'
 import { ApplicantsPreview } from '../features/sprava/components/ApplicantsPreview'
 import { FileUploadZone } from '../features/sprava/components/FileUploadZone'
 import { FormPreviewDialog } from '../features/sprava/components/FormPreviewDialog'
+import { FormsBatchView } from '../features/sprava/components/FormsBatchView'
 import { OrderConfigDialog } from '../features/sprava/components/OrderConfigDialog'
 import { SpravaHelp } from '../features/sprava/components/SpravaHelp'
 import { SpravaSettingsCard } from '../features/sprava/components/SpravaSettingsCard'
-import {
-  defaultFilters,
-  defaultSpravaSettings,
-  type ApplicantFilters,
-  type ApplicantRow,
-  type OrderConfigRow,
-  type SpravaSettings,
-} from '../features/sprava/types'
+import { useSprava } from '../features/sprava/hooks/useSprava'
+import { g, parseName } from '../features/sprava/lib/helpers'
+import { COL, type OrderConfigRow } from '../features/sprava/types'
+import '../features/sprava/forms.css'
 
 export function SpravaPage() {
-  const [settings, setSettings] = useState<SpravaSettings>(defaultSpravaSettings)
-  const [filters, setFilters] = useState<ApplicantFilters>(defaultFilters)
-  const [fileName, setFileName] = useState<string | null>(null)
-  const [status, setStatus] = useState<string | null>(null)
-  const [rows, setRows] = useState<ApplicantRow[]>([])
+  const s = useSprava()
   const [orderOpen, setOrderOpen] = useState(false)
-  const [orderDraft, setOrderDraft] = useState<OrderConfigRow[]>([
-    { id: '1', date: '01.08.2026', orderNumbers: '1255' },
-  ])
-  const [orderSaved, setOrderSaved] = useState<OrderConfigRow[]>(orderDraft)
+  const [orderDraft, setOrderDraft] = useState<OrderConfigRow[]>([])
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewTitle, setPreviewTitle] = useState('Попередній перегляд')
+  const [previewHtml, setPreviewHtml] = useState('')
+  const [batchHtml, setBatchHtml] = useState<string | null>(null)
 
-  const facultyOptions = useMemo(
-    () => [...new Set(rows.map((r) => r.faculty))].sort(),
-    [rows],
-  )
-  const specialtyOptions = useMemo(
-    () => [...new Set(rows.map((r) => r.specialty))].sort(),
-    [rows],
-  )
-  const formOptions = useMemo(
-    () => [...new Set(rows.map((r) => r.form))].sort(),
-    [rows],
-  )
-
-  const filteredRows = useMemo(() => {
-    const q = filters.search.trim().toLowerCase()
-    return rows.filter((row) => {
-      if (q && !row.fullName.toLowerCase().includes(q)) return false
-      if (filters.faculty && row.faculty !== filters.faculty) return false
-      if (filters.specialty && row.specialty !== filters.specialty) return false
-      if (filters.form && row.form !== filters.form) return false
-      if (filters.funding && row.funding !== filters.funding) return false
-      return true
-    })
-  }, [rows, filters])
+  if (batchHtml) {
+    return (
+      <FormsBatchView html={batchHtml} onBack={() => setBatchHtml(null)} />
+    )
+  }
 
   return (
-    <>
+    <Box className="sprava-page">
       <Typography variant="h4" color="primary" gutterBottom>
         Особові справи вступників
       </Typography>
@@ -63,57 +36,70 @@ export function SpravaPage() {
         Генератор форм Н-2.01 та Н-1.03.1 · НУБіП України
       </Typography>
 
-      <SpravaHelp />
+      <SpravaHelp orderConfig={s.orderConfig} />
 
       <SpravaSettingsCard
-        settings={settings}
-        onChange={setSettings}
+        settings={s.settings}
+        onChange={s.setSettings}
         onOpenOrderConfig={() => {
-          setOrderDraft(orderSaved)
+          setOrderDraft(s.orderConfig.map((r) => ({ ...r })))
           setOrderOpen(true)
         }}
       />
 
       <FileUploadZone
-        fileName={fileName}
+        fileName={s.fileName}
+        disabled={s.loading}
         onFileSelected={(file) => {
-          setFileName(file.name)
-          setRows([])
-          setFilters(defaultFilters)
-          setStatus(
-            `Файл «${file.name}» прийнято. Парсинг Excel і фільтр «До наказу» буде підключено наступним кроком.`,
-          )
+          void s.loadFile(file)
         }}
       />
 
-      {status && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {status}
+      {s.loading && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <CircularProgress size={22} />
+          <Typography color="text.secondary">Обробка Excel…</Typography>
+        </Box>
+      )}
+
+      {s.status && (
+        <Alert
+          severity={
+            s.statusTone === 'err'
+              ? 'error'
+              : s.statusTone === 'ok'
+                ? 'success'
+                : 'info'
+          }
+          sx={{ mb: 2 }}
+        >
+          {s.status}
         </Alert>
       )}
 
-      {fileName && (
+      {s.fileName && (
         <ApplicantsPreview
-          filters={filters}
-          onFiltersChange={setFilters}
-          facultyOptions={facultyOptions}
-          specialtyOptions={specialtyOptions}
-          formOptions={formOptions}
-          rows={filteredRows}
-          onReset={() => {
-            setFileName(null)
-            setRows([])
-            setFilters(defaultFilters)
-            setStatus(null)
+          filters={s.filters}
+          onFiltersChange={s.setFilters}
+          facultyOptions={s.facultyOptions}
+          specialtyOptions={s.specialtyOptions}
+          formOptions={s.formOptions}
+          rows={s.filteredRows}
+          totalLoaded={s.totalLoaded}
+          onReset={s.reset}
+          onGenerate={() => {
+            if (!s.filteredRecords.length) return
+            setBatchHtml(s.buildFormsHtml())
+            window.scrollTo(0, 0)
           }}
-          onGenerate={() =>
-            setStatus(
-              'Генерація пакету форм буде перенесена з HTML-прототипу.',
-            )
-          }
           onPreview={(id) => {
-            const row = rows.find((r) => r.id === id)
-            setPreviewTitle(row?.fullName ?? 'Попередній перегляд')
+            const rec = s.findRecord(id)
+            if (!rec) return
+            const nm = parseName(g(rec.raw, COL.pib))
+            setPreviewTitle(
+              `${[nm.last, nm.first, nm.mid].filter(Boolean).join(' ')} — ${g(rec.raw, COL.fileNum)}`,
+            )
+            setPreviewHtml(s.buildFormsHtml([id]))
             setPreviewOpen(true)
           }}
         />
@@ -125,7 +111,7 @@ export function SpravaPage() {
         onClose={() => setOrderOpen(false)}
         onChange={setOrderDraft}
         onSave={() => {
-          setOrderSaved(orderDraft)
+          s.setOrderConfig(orderDraft)
           setOrderOpen(false)
         }}
       />
@@ -133,9 +119,9 @@ export function SpravaPage() {
       <FormPreviewDialog
         open={previewOpen}
         title={previewTitle}
+        html={previewHtml}
         onClose={() => setPreviewOpen(false)}
-        onPrint={() => window.print()}
       />
-    </>
+    </Box>
   )
 }

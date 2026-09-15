@@ -1,36 +1,57 @@
 import {
   Alert,
+  Box,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Typography,
 } from '@mui/material'
+import { useEffect, useRef } from 'react'
+import { printFormsHtml } from '../lib/printForms'
 
 type Props = {
   open: boolean
   title: string
+  html: string
   onClose: () => void
-  onPrint: () => void
 }
 
-export function FormPreviewDialog({ open, title, onClose, onPrint }: Props) {
+export function FormPreviewDialog({ open, title, html, onClose }: Props) {
+  const bodyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const root = bodyRef.current
+    if (!root) return
+    root.querySelectorAll<HTMLElement>('.form-page').forEach((page) => {
+      page.contentEditable = 'true'
+      page.style.outline = 'none'
+    })
+  }, [open, html])
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
-        <Alert severity="info" sx={{ mb: 2 }}>
+      <DialogContent dividers sx={{ p: 0 }}>
+        <Alert severity="info" className="sprava-no-print" sx={{ m: 2, mb: 0 }}>
           Клікни на будь-яке поле у формі, щоб відредагувати перед друком.
         </Alert>
-        <Typography color="text.secondary">
-          Попередній перегляд форм Н-2.01 та Н-1.03.1 зʼявиться тут після
-          перенесення логіки генерації з HTML-прототипу.
-        </Typography>
+        <Box
+          ref={bodyRef}
+          className="sprava-forms-preview"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </DialogContent>
-      <DialogActions>
+      <DialogActions className="sprava-no-print">
         <Button onClick={onClose}>Закрити</Button>
-        <Button variant="contained" onClick={onPrint}>
+        <Button
+          variant="contained"
+          onClick={() => {
+            const live = bodyRef.current?.innerHTML ?? html
+            printFormsHtml(live, title)
+          }}
+        >
           Роздрукувати цю заяву
         </Button>
       </DialogActions>
