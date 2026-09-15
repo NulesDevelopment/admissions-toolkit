@@ -1,151 +1,263 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { normalizeThreshold } from '../lib/parsers'
-import { StatystykaStore } from '../lib/store'
+import {
+  clearCachedFile,
+  formatExpiresAt,
+  loadCachedFile,
+  saveCachedFile,
+  updateCachedFaculty,
+} from '../lib/fileCache'
+import {
+  emptyTotals,
+  ensureCachedFileRestored,
+  getSharedWorkerClient,
+  getStatystykaSession,
+  patchStatystykaSession,
+  resetStatystykaSession,
+  subscribeStatystykaSession,
+} from '../lib/sessionStore'
+import {
+  loadThresholds,
+  saveLastFileName,
+  saveSectionExpanded,
+  saveThresholds,
+  thresholdsMapToObject,
+  thresholdsObjectToMap,
+  type SectionId,
+} from '../lib/storage'
 import type {
-  CategoryGroup,
   DetailKind,
-  DuplicateRow,
+  DetailState,
   EncodingOption,
-  LoadMeta,
-  PriorityDetailRow,
-  PublicAppRecord,
-  SpecialtySummary,
-  SummaryTotals,
+  PriorityDetailState,
 } from '../lib/types'
 
-export type DetailState = {
-  specialty: string
-  kind: DetailKind
-  threshold: number
-  label: string
-  rows: PublicAppRecord[]
-  persons: number
-  apps: number
-} | null
-
-export type PriorityDetailState = {
-  specialty: string
-  priority: number
-  rows: PriorityDetailRow[]
-  applications: number
-} | null
-
-const emptyTotals: SummaryTotals = {
-  specialties: 0,
-  persons: 0,
-  apps: 0,
-  duplicateCodes: 0,
-}
+export type { DetailState, PriorityDetailState }
 
 export function useStatystyka() {
-  const storeRef = useRef(new StatystykaStore())
-  const thresholdsRef = useRef(new Map<string, Map<string, number>>())
+  const session = useSyncExternalStore(
+    subscribeStatystykaSession,
+    getStatystykaSession,
+    getStatystykaSession,
+  )
 
-  const [encoding, setEncoding] = useState<EncodingOption>('auto')
-  const [printMode, setPrintMode] = useState<'mono' | 'color'>('mono')
-  const [fileName, setFileName] = useState<string | null>(null)
-  const [status, setStatus] = useState('Завантажте CSV-файл із ЄДЕБО.')
-  const [statusTone, setStatusTone] = useState<'muted' | 'ok' | 'err'>('muted')
-  const [loading, setLoading] = useState(false)
-  const [ready, setReady] = useState(false)
-  const [faculties, setFaculties] = useState<string[]>([])
-  const [faculty, setFaculty] = useState('')
-  const [meta, setMeta] = useState<LoadMeta | null>(null)
+  const thresholdsRef = useRef(thresholdsObjectToMap(loadThresholds()))
+  const patch = patchStatystykaSession
 
-  const [summary, setSummary] = useState<SpecialtySummary[]>([])
-  const [duplicates, setDuplicates] = useState<DuplicateRow[]>([])
-  const [categories, setCategories] = useState<CategoryGroup[]>([])
-  const [totals, setTotals] = useState<SummaryTotals>(emptyTotals)
+  useEffect(() => {
+    saveSectionExpanded(session.sections)
+  }, [session.sections])
 
-  const [detail, setDetail] = useState<DetailState>(null)
-  const [priorityDetail, setPriorityDetail] =
-    useState<PriorityDetailState>(null)
-
-  const refreshSummary = useCallback((facultyName: string) => {
-    if (!facultyName) return
-    let map = thresholdsRef.current.get(facultyName)
-    if (!map) {
-      map = new Map()
-      thresholdsRef.current.set(facultyName, map)
-    }
-
-    const thresholds: Record<string, number> = Object.create(null)
-    for (const [specialty, value] of map) thresholds[specialty] = value
-
-    const result = storeRef.current.summarize(facultyName, thresholds)
-    setSummary(result.summary)
-    setDuplicates(result.duplicates)
-    setCategories(result.categories)
-    setTotals(result.totals)
-
-    // Sync thresholds from result (defaults applied)
-    for (const row of result.summary) {
-      map.set(row.specialty, row.threshold)
-    }
+  const persistThresholds = useCallback(() => {
+    saveThresholds(thresholdsMapToObject(thresholdsRef.current))
   }, [])
 
+  const setSection = useCallback((id: SectionId, expanded: boolean) => {
+    patch({
+      sections: { ...getStatystykaSession().sections, [id]: expanded },
+    })
+  }, [patch])
+
+  const setAllSections = useCallback(
+    (expanded: boolean) => {
+      patch({
+        sections: {
+          charts: expanded,
+          table: expanded,
+          priorities: expanded,
+          categories: expanded,
+          duplicates: expanded,
+        },
+      })
+    },
+    [patch],
+  )
+
+  const refreshSummary = useCallback(
+    async (facultyName: string) => {
+      if (!facultyName) return
+      let map = thresholdsRef.current.get(facultyName)
+      if (!map) {
+        map = new Map()
+        thresholdsRef.current.set(facultyName, map)
+      }
+
+      const thresholds: Record<string, number> = Object.create(null)
+      for (const [specialty, value] of map) thresholds[specialty] = value
+
+      const result = await getSharedWorkerClient().summarize(
+        facultyName,
+        thresholds,
+      )
+      for (const row of result.summary) {
+        map.set(row.specialty, row.threshold)
+      }
+      persistThresholds()
+
+      patch({
+        summary: result.summary,
+        duplicates: result.duplicates,
+        categories: result.categories,
+        totals: result.totals,
+      })
+    },
+    [patch, persistThresholds],
+  )
+
   const loadFile = useCallback(
-    async (file: File) => {
-      setLoading(true)
-      setStatus(`Читання «${file.name}»…`)
-      setStatusTone('muted')
-      setDetail(null)
-      setPriorityDetail(null)
+    async (
+      file: File,
+      options?: { faculty?: string; persist?: boolean; encoding?: EncodingOption },
+    ) => {
+      const encoding = options?.encoding ?? getStatystykaSession().encoding
+      patch({
+        loading: true,
+        status: `Читання «${file.name}»…`,
+        statusTone: 'muted',
+        detail: null,
+        priorityDetail: null,
+      })
 
       try {
-        const result = await storeRef.current.loadFile(
+        const result = await getSharedWorkerClient().loadFile(
           file,
           encoding,
           (rows) => {
-            setStatus(`Оброблено рядків: ${rows.toLocaleString('uk-UA')}…`)
+            patch({
+              status: `Оброблено рядків: ${rows.toLocaleString('uk-UA')}…`,
+            })
           },
         )
 
-        setFileName(file.name)
-        setFaculties(result.faculties)
-        setMeta(result.meta)
-        setReady(true)
-        thresholdsRef.current = new Map()
+        if (!result.faculties.length) {
+          throw new Error(
+            'Файл прочитано, але не знайдено жодного факультету / підрозділу. Перевірте колонки CSV.',
+          )
+        }
 
-        const firstFaculty = result.faculties[0] ?? ''
-        setFaculty(firstFaculty)
+        const preferredFaculty =
+          options?.faculty && result.faculties.includes(options.faculty)
+            ? options.faculty
+            : (result.faculties[0] ?? '')
 
+        let cacheExpiresAt: number | null = getStatystykaSession().cacheExpiresAt
+        if (options?.persist !== false) {
+          try {
+            const meta = await saveCachedFile({
+              file,
+              encoding,
+              faculty: preferredFaculty,
+            })
+            cacheExpiresAt = meta.expiresAt
+          } catch {
+            // Quota / private mode — continue without disk cache
+            cacheExpiresAt = null
+          }
+        }
+
+        saveLastFileName(file.name)
         const m = result.meta
-        setStatus(
-          `Готово. Кодування: ${m.encoding}. Рядків: ${m.totalRows}; чинних: ${m.validRows}; скасовано: ${m.cancelled}.`,
-        )
-        setStatusTone('ok')
+        const expiryNote = cacheExpiresAt
+          ? ` Збережено локально до ${formatExpiresAt(cacheExpiresAt)}.`
+          : ''
 
-        if (firstFaculty) refreshSummary(firstFaculty)
+        patch({
+          fileName: file.name,
+          faculties: result.faculties,
+          meta: m,
+          ready: true,
+          faculty: preferredFaculty,
+          encoding,
+          cacheExpiresAt,
+          status:
+            `Готово. Кодування: ${m.encoding}. Рядків: ${m.totalRows}; чинних: ${m.validRows}; скасовано: ${m.cancelled}.${expiryNote}`,
+          statusTone: 'ok',
+          loading: false,
+          restoring: false,
+        })
+
+        if (preferredFaculty) await refreshSummary(preferredFaculty)
       } catch (err) {
-        setReady(false)
-        setFaculties([])
-        setFaculty('')
-        setSummary([])
-        setDuplicates([])
-        setCategories([])
-        setTotals(emptyTotals)
-        setStatus(err instanceof Error ? err.message : String(err))
-        setStatusTone('err')
-      } finally {
-        setLoading(false)
+        const message = err instanceof Error ? err.message : String(err)
+        patch({
+          ready: false,
+          faculties: [],
+          faculty: '',
+          summary: [],
+          duplicates: [],
+          categories: [],
+          totals: emptyTotals,
+          loading: false,
+          restoring: false,
+          status:
+            message.includes('відсутні') || message.includes('CSV')
+              ? message
+              : `Не вдалося обробити файл: ${message}`,
+          statusTone: 'err',
+        })
       }
     },
-    [encoding, refreshSummary],
+    [patch, refreshSummary],
   )
+
+  useEffect(() => {
+    void ensureCachedFileRestored(async () => {
+      if (getStatystykaSession().ready) return
+
+      patch({
+        restoring: true,
+        status: 'Відновлення збереженого файлу…',
+        statusTone: 'muted',
+      })
+
+      try {
+        const cached = await loadCachedFile()
+        if (getStatystykaSession().ready) return
+
+        if (!cached) {
+          patch({
+            restoring: false,
+            loading: false,
+            status: 'Завантажте CSV-файл із ЄДЕБО.',
+            statusTone: 'muted',
+          })
+          return
+        }
+
+        patch({
+          encoding: cached.meta.encoding,
+          cacheExpiresAt: cached.meta.expiresAt,
+        })
+
+        await loadFile(cached.file, {
+          faculty: cached.meta.faculty,
+          encoding: cached.meta.encoding,
+          persist: false,
+        })
+      } catch {
+        patch({
+          restoring: false,
+          loading: false,
+          status:
+            'Не вдалося відновити збережений файл. Завантажте CSV знову.',
+          statusTone: 'err',
+        })
+      }
+    })
+  }, [loadFile, patch])
 
   const changeFaculty = useCallback(
     (next: string) => {
-      setFaculty(next)
-      setDetail(null)
-      setPriorityDetail(null)
-      refreshSummary(next)
+      patch({ faculty: next, detail: null, priorityDetail: null })
+      void refreshSummary(next)
+      void updateCachedFaculty(next).catch(() => undefined)
     },
-    [refreshSummary],
+    [patch, refreshSummary],
   )
 
   const changeThreshold = useCallback(
     (specialty: string, value: number) => {
+      const faculty = getStatystykaSession().faculty
       if (!faculty) return
       let map = thresholdsRef.current.get(faculty)
       if (!map) {
@@ -153,107 +265,133 @@ export function useStatystyka() {
         thresholdsRef.current.set(faculty, map)
       }
       map.set(specialty, normalizeThreshold(value))
-      refreshSummary(faculty)
+      persistThresholds()
+      void refreshSummary(faculty)
     },
-    [faculty, refreshSummary],
+    [persistThresholds, refreshSummary],
   )
 
   const openDetail = useCallback(
-    (specialty: string, kind: DetailKind, threshold: number, label: string) => {
+    async (
+      specialty: string,
+      kind: DetailKind,
+      threshold: number,
+      label: string,
+    ) => {
+      const faculty = getStatystykaSession().faculty
       if (!faculty) return
-      const result = storeRef.current.detail(
+      const result = await getSharedWorkerClient().detail(
         faculty,
         specialty,
         kind,
         threshold,
       )
-      setPriorityDetail(null)
-      setDetail({
-        specialty,
-        kind,
-        threshold,
-        label,
-        rows: result.rows,
-        persons: result.persons,
-        apps: result.apps,
+      patch({
+        priorityDetail: null,
+        detail: {
+          specialty,
+          kind,
+          threshold,
+          label,
+          rows: result.rows,
+          persons: result.persons,
+          apps: result.apps,
+        },
       })
+      window.setTimeout(() => {
+        document.getElementById('stat-detail')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+      }, 50)
     },
-    [faculty],
+    [patch],
   )
 
   const openPriorityDetail = useCallback(
-    (specialty: string, priority: number) => {
+    async (specialty: string, priority: number) => {
+      const faculty = getStatystykaSession().faculty
       if (!faculty) return
-      const result = storeRef.current.priorityDetail(
+      const result = await getSharedWorkerClient().priorityDetail(
         faculty,
         specialty,
         priority,
       )
-      setDetail(null)
-      setPriorityDetail({
-        specialty,
-        priority,
-        rows: result.rows,
-        applications: result.applications,
+      patch({
+        detail: null,
+        priorityDetail: {
+          specialty,
+          priority,
+          rows: result.rows,
+          applications: result.applications,
+        },
       })
+      window.setTimeout(() => {
+        document.getElementById('stat-priority-detail')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+      }, 50)
     },
-    [faculty],
+    [patch],
   )
 
-  const hasData = ready && Boolean(faculty)
+  const clearSavedData = useCallback(async () => {
+    await clearCachedFile()
+    resetStatystykaSession(
+      'Збережені дані очищено (памʼять і диск). Завантажте CSV знову.',
+    )
+  }, [])
+
+  const hasData = session.ready && Boolean(session.faculty)
 
   return useMemo(
     () => ({
-      encoding,
-      setEncoding,
-      printMode,
-      setPrintMode,
-      fileName,
-      status,
-      statusTone,
-      loading,
-      ready,
+      encoding: session.encoding,
+      setEncoding: (encoding: EncodingOption) => patch({ encoding }),
+      printMode: session.printMode,
+      setPrintMode: (printMode: 'mono' | 'color') => patch({ printMode }),
+      fileName: session.fileName,
+      status: session.status,
+      statusTone: session.statusTone,
+      loading: session.loading || session.restoring,
+      restoring: session.restoring,
+      ready: session.ready,
       hasData,
-      faculties,
-      faculty,
-      meta,
-      summary,
-      duplicates,
-      categories,
-      totals,
-      detail,
-      priorityDetail,
-      loadFile,
+      faculties: session.faculties,
+      faculty: session.faculty,
+      meta: session.meta,
+      summary: session.summary,
+      duplicates: session.duplicates,
+      categories: session.categories,
+      totals: session.totals,
+      detail: session.detail,
+      priorityDetail: session.priorityDetail,
+      sections: session.sections,
+      cacheExpiresAt: session.cacheExpiresAt,
+      setSection,
+      setAllSections,
+      loadFile: (file: File) => loadFile(file),
       changeFaculty,
       changeThreshold,
       openDetail,
       openPriorityDetail,
-      closeDetail: () => setDetail(null),
-      closePriorityDetail: () => setPriorityDetail(null),
+      clearSavedData,
+      closeDetail: () => patch({ detail: null }),
+      closePriorityDetail: () => patch({ priorityDetail: null }),
     }),
     [
-      encoding,
-      printMode,
-      fileName,
-      status,
-      statusTone,
-      loading,
-      ready,
+      session,
       hasData,
-      faculties,
-      faculty,
-      meta,
-      summary,
-      duplicates,
-      categories,
-      totals,
-      detail,
-      priorityDetail,
+      patch,
+      setSection,
+      setAllSections,
       loadFile,
       changeFaculty,
       changeThreshold,
       openDetail,
       openPriorityDetail,
+      clearSavedData,
     ],
   )
 }

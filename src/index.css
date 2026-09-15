@@ -8,3 +8,56 @@ body,
 body {
   min-width: 320px;
 }
+
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  /* Hide app chrome */
+  .MuiDrawer-root {
+    display: none !important;
+  }
+
+  main {
+    width: 100% !important;
+  }
+
+  .statystyka-page {
+    padding: 0 !important;
+  }
+
+  .MuiAccordion-root {
+    break-inside: avoid;
+  }
+
+  .print-table {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+
+  body.print-mode-mono .MuiButton-root,
+  body.print-mode-mono .MuiChip-root {
+    color: #000 !important;
+    border-color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+  }
+
+  body.print-mode-mono svg {
+    fill: #000 !important;
+  }
+}

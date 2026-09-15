@@ -222,3 +222,20 @@ export type PriorityDetailRow = {
 
 export type EncodingOption = 'auto' | 'windows-1251' | 'utf-8'
 export type PrintMode = 'mono' | 'color'
+
+export type DetailState = {
+  specialty: string
+  kind: DetailKind
+  threshold: number
+  label: string
+  rows: PublicAppRecord[]
+  persons: number
+  apps: number
+} | null
+
+export type PriorityDetailState = {
+  specialty: string
+  priority: number
+  rows: PriorityDetailRow[]
+  applications: number
+} | null

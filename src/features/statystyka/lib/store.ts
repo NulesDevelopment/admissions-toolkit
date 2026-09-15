@@ -58,7 +58,10 @@ function buildIndexes(header: string[]): ColumnIndexes {
   const map = new Map(header.map((v, i) => [clean(v), i]))
   const missing = REQUIRED_COLUMNS.filter((x) => !map.has(x))
   if (missing.length) {
-    throw new Error('У CSV відсутні колонки: ' + missing.join(', '))
+    throw new Error(
+      `У CSV відсутні обовʼязкові колонки (${missing.length}): ${missing.join(', ')}. ` +
+        'Переконайтесь, що це експорт заявок з ЄДЕБО з роздільником «;».',
+    )
   }
 
   const categoryAliases = [
@@ -300,7 +303,11 @@ export class StatystykaStore {
       parser.push(decoder.decode(buf), true)
     }
 
-    if (!header) throw new Error('CSV порожній або не містить заголовка.')
+    if (!header) {
+      throw new Error(
+        'CSV порожній або не містить заголовка. Очікується файл ЄДЕБО з першим рядком назв колонок.',
+      )
+    }
 
     this.loadMeta = meta
 

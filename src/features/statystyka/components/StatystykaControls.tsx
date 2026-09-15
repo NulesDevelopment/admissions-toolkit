@@ -26,6 +26,11 @@ type Props = {
   onFacultyChange: (value: string) => void
   onFileSelected: (file: File) => void
   onPrintPdf: () => void
+  onCollapseAll: () => void
+  onExpandAll: () => void
+  onExportZip: () => void
+  onClearSavedData: () => void
+  cacheExpiresAt: number | null
 }
 
 export function StatystykaControls({
@@ -43,6 +48,11 @@ export function StatystykaControls({
   onFacultyChange,
   onFileSelected,
   onPrintPdf,
+  onCollapseAll,
+  onExpandAll,
+  onExportZip,
+  onClearSavedData,
+  cacheExpiresAt,
 }: Props) {
   const statusColor =
     statusTone === 'ok'
@@ -127,11 +137,46 @@ export function StatystykaControls({
         <Button variant="contained" disabled={!hasData} onClick={onPrintPdf}>
           Сформувати PDF
         </Button>
+        <Button disabled={!hasData} onClick={onCollapseAll}>
+          Згорнути все
+        </Button>
+        <Button disabled={!hasData} onClick={onExpandAll}>
+          Розгорнути все
+        </Button>
+        <Button disabled={!hasData} variant="outlined" onClick={onExportZip}>
+          ZIP-звіт
+        </Button>
+        <Button
+          color="warning"
+          disabled={!hasData && !cacheExpiresAt && !fileName}
+          onClick={onClearSavedData}
+        >
+          Скинути збережене
+        </Button>
       </Stack>
 
       <Typography variant="body2" sx={{ mt: 1.5, color: statusColor }}>
         {fileName ? `Файл: ${fileName}. ` : ''}
         {status}
+      </Typography>
+      {cacheExpiresAt && (
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', mt: 0.5 }}
+        >
+          CSV з персональними даними зберігається локально в браузері до{' '}
+          {new Date(cacheExpiresAt).toLocaleString('uk-UA', {
+            day: '2-digit',
+            month: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+          . Після цього видалиться автоматично.
+        </Typography>
+      )}
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+        У вікні друку оберіть «Зберегти як PDF».
       </Typography>
 
       <Alert severity="info" sx={{ mt: 1.5 }}>

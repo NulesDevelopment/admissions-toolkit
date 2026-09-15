@@ -1,7 +1,5 @@
 import {
   Button,
-  Paper,
-  Stack,
   Table,
   TableBody,
   TableCell,
@@ -9,28 +7,85 @@ import {
   TableFooter,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from '@mui/material'
-import { Fragment, useMemo } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { yesNo } from '../lib/export'
+import { clickSort, matchesSearch, sortRows, type SortState } from '../lib/sort'
 import type { DuplicateRow } from '../lib/types'
+import { CollapsibleSection } from './CollapsibleSection'
+import { SortableHeaderCell } from './SortableHeaderCell'
+
+type SortKey =
+  | 'specialty'
+  | 'caseCode'
+  | 'appId'
+  | 'personId'
+  | 'personName'
+  | 'status'
+  | 'claimsBudget'
+  | 'claimsContract'
+  | 'score'
+  | 'dateMs'
 
 type Props = {
   rows: DuplicateRow[]
+  expanded: boolean
+  onExpandedChange: (v: boolean) => void
   onExport: () => void
 }
 
-type Group = {
-  key: string
-  specialty: string
-  caseCode: string
-  rows: DuplicateRow[]
+const sticky = {
+  position: 'sticky' as const,
+  left: 0,
+  zIndex: 1,
+  bgcolor: 'background.paper',
 }
 
-export function DuplicatesSection({ rows, onExport }: Props) {
+export function DuplicatesSection({
+  rows,
+  expanded,
+  onExpandedChange,
+  onExport,
+}: Props) {
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<SortState<SortKey>>({ key: null, dir: 1 })
+
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) =>
+        matchesSearch(
+          query,
+          r.personName,
+          r.caseCode,
+          r.appId,
+          r.personId,
+          r.specialty,
+          r.status,
+        ),
+      ),
+    [rows, query],
+  )
+
+  const sorted = useMemo(
+    () =>
+      sortRows(
+        filtered,
+        sort,
+        (a, b) =>
+          a.specialty.localeCompare(b.specialty, 'uk') ||
+          a.caseCode.localeCompare(b.caseCode, 'uk'),
+      ),
+    [filtered, sort],
+  )
+
   const groups = useMemo(() => {
-    const map = new Map<string, Group>()
-    for (const row of rows) {
+    const map = new Map<
+      string,
+      { key: string; specialty: string; caseCode: string; rows: DuplicateRow[] }
+    >()
+    for (const row of sorted) {
       const key = `${row.specialty}\u0000${row.caseCode}`
       let group = map.get(key)
       if (!group) {
@@ -45,22 +100,20 @@ export function DuplicatesSection({ rows, onExport }: Props) {
       group.rows.push(row)
     }
     return [...map.values()]
-  }, [rows])
+  }, [sorted])
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1}
-        sx={{
-          mb: 1.5,
-          justifyContent: 'space-between',
-          alignItems: { sm: 'center' },
-        }}
-      >
-        <Typography variant="h6">
-          Дублікати «Номер (шифр) особової справи»
-        </Typography>
+    <CollapsibleSection
+      id="stat-duplicates"
+      title="Дублікати «Номер (шифр) особової справи»"
+      subtitle={
+        rows.length
+          ? `Заяв у групах: ${rows.length}`
+          : 'Дублікатів у вибраному факультеті немає'
+      }
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
+      actions={
         <Button
           size="small"
           variant="outlined"
@@ -69,29 +122,94 @@ export function DuplicatesSection({ rows, onExport }: Props) {
         >
           Експорт дублікатів CSV
         </Button>
-      </Stack>
+      }
+    >
+      {rows.length > 0 && (
+        <TextField
+          size="small"
+          fullWidth
+          className="screen-only"
+          placeholder="Пошук у дублікатах…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          sx={{ mb: 1.5 }}
+        />
+      )}
 
       {rows.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+        <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
           Дублікатів у вибраному факультеті немає.
         </Typography>
       ) : (
         <TableContainer
+          className="print-table"
           sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
         >
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Спеціальність</TableCell>
-                <TableCell>Шифр</TableCell>
-                <TableCell>Ід заявки</TableCell>
-                <TableCell>Ід персони</TableCell>
-                <TableCell>Вступник</TableCell>
-                <TableCell>Статус</TableCell>
-                <TableCell>Бюджет</TableCell>
-                <TableCell>Контракт</TableCell>
-                <TableCell align="right">Бал</TableCell>
-                <TableCell>Дата</TableCell>
+                <SortableHeaderCell
+                  id="specialty"
+                  label="Спеціальність"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                  sticky
+                />
+                <SortableHeaderCell
+                  id="caseCode"
+                  label="Шифр"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
+                <SortableHeaderCell
+                  id="appId"
+                  label="Ід заявки"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
+                <SortableHeaderCell
+                  id="personId"
+                  label="Ід персони"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
+                <SortableHeaderCell
+                  id="personName"
+                  label="Вступник"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
+                <SortableHeaderCell
+                  id="status"
+                  label="Статус"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
+                <SortableHeaderCell
+                  id="claimsBudget"
+                  label="Бюджет"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
+                <SortableHeaderCell
+                  id="claimsContract"
+                  label="Контракт"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
+                <SortableHeaderCell
+                  id="score"
+                  label="Бал"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                  align="right"
+                />
+                <SortableHeaderCell
+                  id="dateMs"
+                  label="Дата"
+                  sort={sort}
+                  onSort={(k) => setSort((s) => clickSort(s, k))}
+                />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -112,7 +230,7 @@ export function DuplicatesSection({ rows, onExport }: Props) {
                     </TableRow>
                     {group.rows.map((row, i) => (
                       <TableRow key={`${group.key}-${row.appId}-${i}`} hover>
-                        <TableCell>{row.specialty}</TableCell>
+                        <TableCell sx={sticky}>{row.specialty}</TableCell>
                         <TableCell>{row.caseCode}</TableCell>
                         <TableCell>{row.appId}</TableCell>
                         <TableCell>{row.personId}</TableCell>
@@ -133,14 +251,13 @@ export function DuplicatesSection({ rows, onExport }: Props) {
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={10} sx={{ fontWeight: 700 }}>
-                  Разом груп дублікатів: {groups.length}; заяв у групах:{' '}
-                  {rows.length}
+                  Разом груп: {groups.length}; заяв: {sorted.length}
                 </TableCell>
               </TableRow>
             </TableFooter>
           </Table>
         </TableContainer>
       )}
-    </Paper>
+    </CollapsibleSection>
   )
 }

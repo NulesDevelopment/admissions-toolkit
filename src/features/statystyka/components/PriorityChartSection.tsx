@@ -1,23 +1,30 @@
-import { Box, Button, Paper, Stack, Typography } from '@mui/material'
+import { Box, Button, Stack, Typography } from '@mui/material'
 import type { SpecialtySummary } from '../lib/types'
+import { CollapsibleSection } from './CollapsibleSection'
 
 type Props = {
   faculty: string
   specialties: SpecialtySummary[]
+  expanded: boolean
+  onExpandedChange: (v: boolean) => void
   onOpenPriority: (specialty: string, priority: number) => void
 }
 
 export function PriorityChartSection({
   faculty,
   specialties,
+  expanded,
+  onExpandedChange,
   onOpenPriority,
 }: Props) {
   return (
-    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-      <Typography variant="h6" gutterBottom>
-        Пріоритети заяв за спеціальностями — {faculty}
-      </Typography>
-
+    <CollapsibleSection
+      id="stat-priorities"
+      title={`Пріоритети заяв за спеціальностями — ${faculty}`}
+      subtitle="Клік по стовпцю пріоритету відкриває список вступників"
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
+    >
       {specialties.length === 0 ? (
         <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
           Немає даних.
@@ -91,11 +98,6 @@ export function PriorityChartSection({
           })}
         </Stack>
       )}
-
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
-        У дужках: Б — претендують на бюджет; К — лише на контракт. Висота
-        стовпця — унікальні вступники. Клік відкриває список.
-      </Typography>
-    </Paper>
+    </CollapsibleSection>
   )
 }

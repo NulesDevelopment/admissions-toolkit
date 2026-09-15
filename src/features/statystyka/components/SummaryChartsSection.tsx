@@ -13,7 +13,20 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import type { SpecialtySummary } from '../lib/types'
+import type { DetailKind, SpecialtySummary } from '../lib/types'
+import { CollapsibleSection } from './CollapsibleSection'
+
+type Props = {
+  faculty: string
+  specialties: SpecialtySummary[]
+  expanded: boolean
+  onExpandedChange: (v: boolean) => void
+  onOpenDetail: (
+    specialty: string,
+    kind: DetailKind,
+    threshold: number,
+  ) => void
+}
 
 const COLORS = {
   primary: '#2a7a3a',
@@ -38,11 +51,6 @@ const COLORS = {
     '#c45c26',
     '#d4784a',
   ],
-}
-
-type Props = {
-  faculty: string
-  specialties: SpecialtySummary[]
 }
 
 function shortLabel(specialty: string, max = 28): string {
@@ -80,7 +88,13 @@ function ChartCard({
   )
 }
 
-export function SummaryChartsSection({ faculty, specialties }: Props) {
+export function SummaryChartsSection({
+  faculty,
+  specialties,
+  expanded,
+  onExpandedChange,
+  onOpenDetail,
+}: Props) {
   const bySpecialty = useMemo(
     () =>
       [...specialties]
@@ -144,14 +158,25 @@ export function SummaryChartsSection({ faculty, specialties }: Props) {
 
   const chartHeight = Math.max(280, bySpecialty.length * 36)
 
+  const open = (
+    specialty: string,
+    kind: DetailKind,
+  ) => {
+    const row = specialties.find((s) => s.specialty === specialty)
+    if (!row) return
+    onOpenDetail(specialty, kind, row.threshold)
+  }
+
   if (specialties.length === 0) return null
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="h6" sx={{ mb: 1.5 }}>
-        Діаграми — {faculty}
-      </Typography>
-
+    <CollapsibleSection
+      id="stat-charts"
+      title={`Діаграми — ${faculty}`}
+      subtitle="Клік по стовпцю спеціальності відкриває детальний список"
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
+    >
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, lg: 7 }}>
           <ChartCard
@@ -179,7 +204,17 @@ export function SummaryChartsSection({ faculty, specialties }: Props) {
                     String(payload?.[0]?.payload?.fullName ?? '')
                   }
                 />
-                <Bar dataKey="persons" name="Вступники" fill={COLORS.primary} radius={[0, 4, 4, 0]} />
+                <Bar
+                  dataKey="persons"
+                  name="Вступники"
+                  fill={COLORS.primary}
+                  radius={[0, 4, 4, 0]}
+                  cursor="pointer"
+                  onClick={(data) => {
+                    const fullName = (data as { fullName?: string }).fullName
+                    if (fullName) open(fullName, 'persons')
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -248,6 +283,11 @@ export function SummaryChartsSection({ faculty, specialties }: Props) {
                   name="≥ порогу"
                   stackId="t"
                   fill={COLORS.above}
+                  cursor="pointer"
+                  onClick={(data) => {
+                    const fullName = (data as { fullName?: string }).fullName
+                    if (fullName) open(fullName, 'above')
+                  }}
                 />
                 <Bar
                   dataKey="below"
@@ -255,6 +295,11 @@ export function SummaryChartsSection({ faculty, specialties }: Props) {
                   stackId="t"
                   fill={COLORS.below}
                   radius={[0, 4, 4, 0]}
+                  cursor="pointer"
+                  onClick={(data) => {
+                    const fullName = (data as { fullName?: string }).fullName
+                    if (fullName) open(fullName, 'below')
+                  }}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -356,6 +401,6 @@ export function SummaryChartsSection({ faculty, specialties }: Props) {
           </ChartCard>
         </Grid>
       </Grid>
-    </Box>
+    </CollapsibleSection>
   )
 }
