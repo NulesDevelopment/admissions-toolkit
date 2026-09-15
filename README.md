@@ -41,3 +41,12 @@ npm run dev
 | `npm run preview` | перегляд збірки |
 | `npm run lint` | oxlint |
 | `npm test` | vitest |
+
+## Деплой (Vercel)
+
+1. Запуш `main` на GitHub (`NulesDevelopment/admissions-toolkit`).
+2. [vercel.com/new](https://vercel.com/new) → Import репозиторію.
+3. Framework: Vite (підхопить `vercel.json`).
+4. Deploy — отримаєш постійний URL `*.vercel.app`.
+
+`vercel.json` уже містить SPA-rewrites для React Router (`/sprava`, `/statystyka` після F5).

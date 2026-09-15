@@ -122,3 +122,33 @@ docs/                     # USER.md, цей файл
 | `README.md` | швидкий огляд репо |
 
 Прототипи в `reference/` — не підключаються до збірки; використовуйте як специфікацію при портуванні.
+
+## Деплой на Vercel
+
+Статичний SPA: після `npm run build` достатньо роздати `dist/`.
+
+### Через GitHub (рекомендовано)
+
+1. Переконайся, що `main` на GitHub актуальний (`vercel.json` у корені).
+2. Зайди на [vercel.com](https://vercel.com) → **Add New… → Project**.
+3. Import `NulesDevelopment/admissions-toolkit`.
+4. Root Directory: `.` · Framework Preset: **Vite** (або залишити з `vercel.json`).
+5. **Deploy**. URL вигляду `https://admissions-toolkit-….vercel.app`.
+
+Кожен push у підключену гілку створює новий production/preview деплой.
+
+### Локально (CLI)
+
+```bash
+npx vercel login
+npx vercel        # preview
+npx vercel --prod # production
+```
+
+### SPA / React Router
+
+У `vercel.json` є `rewrites` → `/index.html`, щоб маршрути `/sprava` і `/statystyka` працювали після оновлення сторінки.
+
+### ПДн
+
+На Vercel лежать лише JS/CSS/HTML. Excel/CSV і фото залишаються в браузері користувача (IndexedDB / памʼять). Не логуй ПІБ у клієнтському коді.
